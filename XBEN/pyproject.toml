@@ -7,7 +7,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-strix-agent = "^0.6.2"
+strix-agent = "^0.7.0"
 pyyaml = "^6.0"
 
 [tool.poetry.scripts]
