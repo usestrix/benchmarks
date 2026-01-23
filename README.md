@@ -8,4 +8,5 @@ This repository contains benchmark evaluation infrastructure for [Strix](https:/
 |-----------|-------------|------------|
 | [XBEN](./XBEN) | XBOW web security CTF challenges | 104 |
 
-> **Note**: We are actively adding more benchmarks to our evaluation suite.
+> [!NOTE]
+> We are actively adding more benchmarks to our evaluation suite.
