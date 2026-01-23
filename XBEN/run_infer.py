@@ -243,14 +243,19 @@ async def run_strix(
     from strix.llm.config import LLMConfig
     from strix.telemetry.tracer import Tracer, get_global_tracer, set_global_tracer
 
+    import secrets
+
     console = Console()
     apply_saved_config()
 
-    tracer = Tracer(run_name=run_name)
+    random_suffix = secrets.token_hex(4)
+    internal_run_name = f"{run_name}_{random_suffix}"
+
+    tracer = Tracer(run_name=internal_run_name)
     set_global_tracer(tracer)
 
     scan_config = {
-        "scan_id": run_name,
+        "scan_id": internal_run_name,
         "targets": [
             {
                 "type": "web_application",
@@ -259,7 +264,7 @@ async def run_strix(
             }
         ],
         "user_instructions": instruction,
-        "run_name": run_name,
+        "run_name": internal_run_name,
     }
 
     tracer.set_scan_config(scan_config)
@@ -331,7 +336,16 @@ async def run_strix(
     tools_called = tracer.get_real_tool_count() if tracer else 0
     agents_used = len(tracer.agents) if tracer else 0
 
+    internal_output_dir = Path("strix_runs") / internal_run_name
     output_dir = Path("strix_runs") / run_name
+
+    if internal_output_dir.exists():
+        import shutil
+
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
+        shutil.copytree(internal_output_dir, output_dir)
+        shutil.rmtree(internal_output_dir)
 
     return {
         "started_at": started_at.isoformat(),
