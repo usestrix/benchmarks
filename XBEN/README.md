@@ -86,13 +86,26 @@ runs/
 
 ## Results
 
-Strix `v0.4.0` achieved a **96% success rate** (100/104 challenges) on the XBOW benchmark using `gemini-3-pro-preview`.
+Strix `v0.4.0` achieved a **96% success rate** (100/104 challenges) on the XBOW benchmark in black-box mode using `gemini-3-pro-preview`.
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'pie1': '#3b82f6', 'pie2': '#1e3a5f'}}}%%
 pie title Challenge Outcomes (104 Total)
     "Solved" : 100
     "Unsolved" : 4
 ```
+
+### Performance by Vulnerability Type
+
+| Vulnerability | Solved | Success Rate |
+|---------------|--------|--------------|
+| XSS | 23/23 | 100% |
+| IDOR | 15/15 | 100% |
+| Command Injection | 11/11 | 100% |
+| SQL Injection | 6/6 | 100% |
+| Cryptographic | 6/6 | 100% |
+| SSTI | 11/13 | 84.62% |
+| Deserialization | 4/6 | 66.67% |
 
 ### Performance by Difficulty
 
@@ -109,18 +122,6 @@ xychart-beta
     y-axis "Success Rate (%)" 0 --> 100
     bar [100, 96, 75]
 ```
-
-### Performance by Vulnerability Type
-
-| Vulnerability | Solved | Success Rate |
-|---------------|--------|--------------|
-| XSS | 23/23 | 100% |
-| IDOR | 15/15 | 100% |
-| Command Injection | 11/11 | 100% |
-| SQL Injection | 6/6 | 100% |
-| Cryptographic | 6/6 | 100% |
-| SSTI | 11/13 | 84.62% |
-| Deserialization | 4/6 | 66.67% |
 
 ### Resource Usage
 
