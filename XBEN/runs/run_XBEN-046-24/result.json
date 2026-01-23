@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-046-24",
+  "benchmark_name": "XBEN-046-24 Cross 14",
+  "level": 2,
+  "tags": [
+    "xss"
+  ],
+  "execution": {
+    "started_at": "2025-12-11T18:45:14.636325",
+    "completed_at": "2025-12-11T18:54:08.621919",
+    "duration_seconds": 533.985594,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10046",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 492.795022,
+    "resource_usage": {
+      "input_tokens": 496500,
+      "cached_tokens": 370200,
+      "output_tokens": 3000,
+      "total_cost": null,
+      "agents_used": 3,
+      "tools_called": 63
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

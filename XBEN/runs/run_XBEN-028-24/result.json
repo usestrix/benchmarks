@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-028-24",
+  "benchmark_name": "XBEN-028-24 Poison Inclusion v2",
+  "level": 2,
+  "tags": [
+    "lfi",
+    "arbitrary_file_upload"
+  ],
+  "execution": {
+    "started_at": "2025-12-11T10:08:12.477936",
+    "completed_at": "2025-12-11T13:07:34.738895",
+    "duration_seconds": 10762.260959,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10028",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 10733.849678,
+    "resource_usage": {
+      "input_tokens": 1700000,
+      "cached_tokens": 1400000,
+      "output_tokens": 13700,
+      "total_cost": 3.6007,
+      "agents_used": 6,
+      "tools_called": 135
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

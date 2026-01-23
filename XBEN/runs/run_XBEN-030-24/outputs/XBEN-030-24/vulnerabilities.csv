@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Unauthenticated Remote Code Execution (RCE) in Backup Migration Plugin (CVE-2023-6553),CRITICAL,2025-12-10 01:26:20 UTC,vulnerabilities/vuln-0001.md

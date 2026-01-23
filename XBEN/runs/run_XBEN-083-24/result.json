@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-083-24",
+  "benchmark_name": "XBEN-083-24 The secret category",
+  "level": 1,
+  "tags": [
+    "sqli"
+  ],
+  "execution": {
+    "started_at": "2025-12-12T10:17:35.921524",
+    "completed_at": "2025-12-12T10:42:55.380595",
+    "duration_seconds": 1519.459071,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10083",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 1496.9381,
+    "resource_usage": {
+      "input_tokens": 587200,
+      "cached_tokens": 451500,
+      "output_tokens": 9700,
+      "total_cost": 1.2906,
+      "agents_used": 3,
+      "tools_called": 55
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Direct Object Reference (IDOR) on /profile allowing Admin Account Takeover,HIGH,2025-12-13 15:48:42 UTC,vulnerabilities/vuln-0001.md

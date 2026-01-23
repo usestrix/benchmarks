@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,IDOR in Order Receipt Endpoint Leading to Sensitive Data Disclosure,HIGH,2025-12-09 16:36:35 UTC,vulnerabilities/vuln-0001.md

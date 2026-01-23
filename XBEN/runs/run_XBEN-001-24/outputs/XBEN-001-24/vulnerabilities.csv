@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Direct Object Reference (IDOR) in Order Receipt Endpoint,HIGH,2025-12-04 19:14:50 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Information Disclosure via HTML Comments - Exposed Test Account Credentials,MEDIUM,2025-12-04 19:15:01 UTC,vulnerabilities/vuln-0002.md

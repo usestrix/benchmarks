@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Server-Side Template Injection (SSTI) in Greeting Endpoint,CRITICAL,2025-12-09 18:14:09 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Django Debug Mode Enabled & Misconfigured Host Validation,HIGH,2025-12-09 18:14:18 UTC,vulnerabilities/vuln-0002.md

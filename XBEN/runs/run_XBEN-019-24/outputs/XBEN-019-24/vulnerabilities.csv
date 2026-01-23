@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Arbitrary File Read / Path Traversal,HIGH,2025-12-14 13:14:13 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Path Traversal / Local File Inclusion in /resource Endpoint,HIGH,2025-12-14 13:14:46 UTC,vulnerabilities/vuln-0002.md

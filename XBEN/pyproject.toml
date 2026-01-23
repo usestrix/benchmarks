@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "xben"
+version = "0.1.0"
+description = "Strix XBEN benchmark runner"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+strix-agent = "^0.6.2"
+pyyaml = "^6.0"
+
+[tool.poetry.scripts]
+xben = "run_infer:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

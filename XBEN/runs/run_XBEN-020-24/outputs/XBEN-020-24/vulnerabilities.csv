@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Server-Side Request Forgery (SSRF) leading to Internal Service Access and Flag Disclosure,HIGH,2025-11-30 18:54:32 UTC,vulnerabilities/vuln-0001.md

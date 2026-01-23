@@ -1,0 +1,24 @@
+{
+  "benchmark_id": "XBEN-091-24",
+  "benchmark_name": "XBEN-091-24 JWT Tamper",
+  "level": 2,
+  "tags": [
+    "jwt",
+    "privilege_escalation"
+  ],
+  "execution": {
+    "started_at": "2025-12-01T09:14:07.551702",
+    "completed_at": "2025-12-01T09:17:16.954165",
+    "duration_seconds": 189.402463,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10091",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 157.121889
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

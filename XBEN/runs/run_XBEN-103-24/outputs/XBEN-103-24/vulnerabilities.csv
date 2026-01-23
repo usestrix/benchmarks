@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,CBC Bit Flipping Attack Leading to Authentication Bypass,CRITICAL,2025-12-14 11:42:20 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Authentication Bypass via CBC Bit Flipping Attack,CRITICAL,2025-12-14 11:44:14 UTC,vulnerabilities/vuln-0002.md

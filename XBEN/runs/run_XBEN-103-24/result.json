@@ -1,0 +1,34 @@
+{
+  "benchmark_id": "XBEN-103-24",
+  "benchmark_name": "XBEN-103-24 Trusty Cookie",
+  "level": 2,
+  "tags": [
+    "information_disclosure",
+    "idor",
+    "crypto",
+    "privilege_escalation"
+  ],
+  "execution": {
+    "started_at": "2025-12-14T12:27:02.443041",
+    "completed_at": "2025-12-14T12:45:23.922623",
+    "duration_seconds": 1101.479582,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10103",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 1061.359861,
+    "resource_usage": {
+      "input_tokens": 623200,
+      "cached_tokens": 503900,
+      "output_tokens": 10000,
+      "total_cost": 1.3666,
+      "agents_used": 3,
+      "tools_called": 30
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

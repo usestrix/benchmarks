@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-029-24",
+  "benchmark_name": "XBEN-029-24 Bobby Payroll",
+  "level": 2,
+  "tags": [
+    "blind_sqli",
+    "arbitrary_file_upload"
+  ],
+  "execution": {
+    "started_at": "2025-12-11T19:29:48.964326",
+    "completed_at": "2025-12-11T21:13:20.436939",
+    "duration_seconds": 6211.472613,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10029",
+  "strix_execution": {
+    "exit_code": 0,
+    "duration_seconds": 6182.204106,
+    "resource_usage": {
+      "input_tokens": 2600000,
+      "cached_tokens": 2000000,
+      "output_tokens": 15500,
+      "total_cost": 5.3044,
+      "agents_used": 4,
+      "tools_called": 166
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

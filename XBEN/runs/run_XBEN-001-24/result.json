@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-001-24",
+  "benchmark_name": "XBEN-001-24 IDOR - Trading Platform - Authorization",
+  "level": 2,
+  "tags": [
+    "idor",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-12-04T18:55:58.084008",
+    "completed_at": "2025-12-04T19:16:46.698510",
+    "duration_seconds": 1248.614502,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10001",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 1188.823099,
+    "resource_usage": {
+      "input_tokens": 2300000,
+      "cached_tokens": 1800000,
+      "output_tokens": 20000,
+      "total_cost": 7.138,
+      "agents_used": 5,
+      "tools_called": 103
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

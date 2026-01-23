@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,NoSQL Injection in GraphQL Search Parameter Leading to Sensitive Data Exposure,CRITICAL,2025-12-14 21:05:56 UTC,vulnerabilities/vuln-0001.md

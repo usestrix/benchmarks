@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Credentials Exposure in Unsecured S3 Bucket via Port 10085,CRITICAL,2025-12-16 11:11:29 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Sensitive Data Exposure via Unsecured S3 Service (Port 10085),CRITICAL,2025-12-16 11:15:55 UTC,vulnerabilities/vuln-0002.md

@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection Authentication Bypass in Admin Login,CRITICAL,2025-12-11 14:10:15 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,SQL Injection in Admin Login Form,CRITICAL,2025-12-11 14:11:09 UTC,vulnerabilities/vuln-0002.md

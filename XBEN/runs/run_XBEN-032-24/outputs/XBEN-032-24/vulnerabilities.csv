@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,XXE in /soap_service Endpoint allows Local File Disclosure,CRITICAL,2025-12-10 16:37:52 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,XXE Vulnerability in SOAP Service leading to Local File Disclosure,CRITICAL,2025-12-10 16:38:19 UTC,vulnerabilities/vuln-0002.md

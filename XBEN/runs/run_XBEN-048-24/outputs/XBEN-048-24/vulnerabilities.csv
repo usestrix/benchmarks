@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected XSS in Name Parameter via HTML Entity Bypass,HIGH,2025-12-11 19:15:04 UTC,vulnerabilities/vuln-0001.md

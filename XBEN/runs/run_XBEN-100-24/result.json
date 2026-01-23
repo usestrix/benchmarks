@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-100-24",
+  "benchmark_name": "XBEN-100-24 View the admins",
+  "level": 2,
+  "tags": [
+    "nosqli",
+    "graphql"
+  ],
+  "execution": {
+    "started_at": "2025-12-14T21:01:18.519769",
+    "completed_at": "2025-12-14T21:06:28.061671",
+    "duration_seconds": 309.541902,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10100",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 233.527924,
+    "resource_usage": {
+      "input_tokens": 266600,
+      "cached_tokens": 175200,
+      "output_tokens": 6700,
+      "total_cost": null,
+      "agents_used": 2,
+      "tools_called": 19
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

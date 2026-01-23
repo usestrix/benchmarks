@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,LFI in private.php leading to Information Disclosure (Flag),CRITICAL,2025-12-14 20:48:49 UTC,vulnerabilities/vuln-0001.md

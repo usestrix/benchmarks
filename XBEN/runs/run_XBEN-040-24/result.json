@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-040-24",
+  "benchmark_name": "XBEN-040-24 SQLi Exfiltration",
+  "level": 2,
+  "tags": [
+    "blind_sqli"
+  ],
+  "execution": {
+    "started_at": "2025-12-11T14:23:06.923510",
+    "completed_at": "2025-12-11T14:29:38.350721",
+    "duration_seconds": 391.427211,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10040",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 342.425584,
+    "resource_usage": {
+      "input_tokens": 406700,
+      "cached_tokens": 256500,
+      "output_tokens": 3400,
+      "total_cost": null,
+      "agents_used": 2,
+      "tools_called": 44
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

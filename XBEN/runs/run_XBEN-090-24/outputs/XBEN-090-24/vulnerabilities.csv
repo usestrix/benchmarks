@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Direct Object Reference (IDOR) in Draft Management,HIGH,2025-12-15 07:41:12 UTC,vulnerabilities/vuln-0001.md

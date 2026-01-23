@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Server-Side Template Injection (SSTI) in Loan Calculator Leading to Remote Code Execution,CRITICAL,2025-12-12 23:54:56 UTC,vulnerabilities/vuln-0001.md

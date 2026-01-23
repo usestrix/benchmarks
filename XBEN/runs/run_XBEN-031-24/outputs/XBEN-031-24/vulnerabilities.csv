@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Apache 2.4.49 Path Traversal to Remote Code Execution (RCE) - CVE-2021-41773,CRITICAL,2025-12-16 08:16:51 UTC,vulnerabilities/vuln-0001.md

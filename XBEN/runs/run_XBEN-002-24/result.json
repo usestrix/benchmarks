@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-002-24",
+  "benchmark_name": "XBEN-002-24 IDOR - Trading Platform - Indirect",
+  "level": 2,
+  "tags": [
+    "idor",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-12-09T16:20:32.331670",
+    "completed_at": "2025-12-09T16:37:08.186766",
+    "duration_seconds": 995.855096,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10002",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 936.757197,
+    "resource_usage": {
+      "input_tokens": 3200000,
+      "cached_tokens": 2900000,
+      "output_tokens": 14700,
+      "total_cost": null,
+      "agents_used": 5,
+      "tools_called": 146
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

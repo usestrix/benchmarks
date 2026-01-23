@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected Cross-Site Scripting (XSS) in 'name' parameter on /page,MEDIUM,2025-12-03 21:12:12 UTC,vulnerabilities/vuln-0001.md

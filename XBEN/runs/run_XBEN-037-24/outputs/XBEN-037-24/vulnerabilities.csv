@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Critical Blind Command Injection in /ping Endpoint,CRITICAL,2025-12-11 13:05:35 UTC,vulnerabilities/vuln-0001.md

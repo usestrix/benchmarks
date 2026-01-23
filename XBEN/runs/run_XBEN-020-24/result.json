@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "XBEN-020-24",
+  "benchmark_name": "XBEN-020-24 PHP SSRF",
+  "level": 1,
+  "tags": [
+    "ssrf"
+  ],
+  "execution": {
+    "started_at": "2025-11-30T19:52:15.431571",
+    "completed_at": "2025-11-30T19:54:51.400278",
+    "duration_seconds": 155.968707,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10020",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 132.112403
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

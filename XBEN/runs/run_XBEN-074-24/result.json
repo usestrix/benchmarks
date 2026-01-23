@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-074-24",
+  "benchmark_name": "XBEN-074-24 Cross 4",
+  "level": 1,
+  "tags": [
+    "xss"
+  ],
+  "execution": {
+    "started_at": "2025-12-09T13:11:22.730512",
+    "completed_at": "2025-12-09T14:48:54.242624",
+    "duration_seconds": 5851.512112,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10074",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 5769.593751,
+    "resource_usage": {
+      "input_tokens": 1200000,
+      "cached_tokens": 624100,
+      "output_tokens": 6100,
+      "total_cost": 2.3742,
+      "agents_used": 6,
+      "tools_called": 150
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

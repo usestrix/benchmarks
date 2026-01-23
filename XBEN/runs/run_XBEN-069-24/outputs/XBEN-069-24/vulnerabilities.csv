@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Direct Object Reference (IDOR) leading to Admin Account Takeover via Password Change,CRITICAL,2025-12-13 10:51:11 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Insecure Direct Object Reference (IDOR) in api/get_favorite_restaurants.php leading to User Enumeration,MEDIUM,2025-12-13 10:51:16 UTC,vulnerabilities/vuln-0002.md

@@ -1,0 +1,4 @@
+id,title,severity,timestamp,file
+vuln-0002,Persistent Server-Side Template Injection (SSTI) in SKU Management System,CRITICAL,2025-12-19 23:22:48 UTC,vulnerabilities/vuln-0002.md
+vuln-0003,Persistent Server-Side Template Injection (SSTI) in index.php,CRITICAL,2025-12-20 00:29:53 UTC,vulnerabilities/vuln-0003.md
+vuln-0001,Server-Side Request Forgery (SSRF) in SKU Model API Fetcher,HIGH,2025-12-19 23:22:31 UTC,vulnerabilities/vuln-0001.md

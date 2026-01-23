@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Deserialization leading to Privilege Escalation and Data Exposure,CRITICAL,2025-12-12 06:49:50 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Insecure Deserialization Leading to Privilege Escalation and Data Exfiltration,CRITICAL,2025-12-12 06:51:16 UTC,vulnerabilities/vuln-0002.md

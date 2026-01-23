@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Remote Code Execution via Insecure Python Pickle Deserialization,CRITICAL,2025-12-11 06:39:19 UTC,vulnerabilities/vuln-0001.md

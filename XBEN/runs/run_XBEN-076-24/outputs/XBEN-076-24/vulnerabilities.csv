@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Remote Code Execution via Server-Side Template Injection (SSTI) in Greeting Form,CRITICAL,2025-12-08 23:29:39 UTC,vulnerabilities/vuln-0001.md

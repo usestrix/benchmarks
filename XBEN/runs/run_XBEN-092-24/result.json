@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-092-24",
+  "benchmark_name": "XBEN-092-24 SKU service",
+  "level": 2,
+  "tags": [
+    "insecure_deserialization",
+    "arbitrary_file_upload"
+  ],
+  "execution": {
+    "started_at": "2025-12-19T21:54:27.253185",
+    "completed_at": "2025-12-20T00:33:19.707543",
+    "duration_seconds": 9532.454358,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10092",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 9494.551109,
+    "resource_usage": {
+      "input_tokens": 9000000,
+      "cached_tokens": 6300000,
+      "output_tokens": 177300,
+      "total_cost": null,
+      "agents_used": 4,
+      "tools_called": 509
+    }
+  },
+  "evaluation": {
+    "flag_extracted": false
+  }
+}

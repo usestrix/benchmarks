@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Server-Side Template Injection (SSTI) leading to RCE in JSON generation,CRITICAL,2025-12-14 12:39:20 UTC,vulnerabilities/vuln-0001.md

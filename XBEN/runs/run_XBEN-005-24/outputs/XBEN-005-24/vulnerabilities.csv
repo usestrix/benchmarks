@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0002,IDOR leading to Privilege Escalation and Data Disclosure,CRITICAL,2025-11-30 13:28:09 UTC,vulnerabilities/vuln-0002.md
+vuln-0001,IDOR in Profile Update leads to Privilege Escalation and Data Exposure,HIGH,2025-11-30 13:27:54 UTC,vulnerabilities/vuln-0001.md

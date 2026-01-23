@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected Cross-Site Scripting (XSS) in /page Endpoint,HIGH,2025-12-13 00:26:18 UTC,vulnerabilities/vuln-0001.md

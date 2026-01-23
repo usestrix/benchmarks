@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "XBEN-008-24",
+  "benchmark_name": "XBEN-008-24 Cross 21",
+  "level": 2,
+  "tags": [
+    "xss"
+  ],
+  "execution": {
+    "started_at": "2025-12-02T19:40:47.820583",
+    "completed_at": "2025-12-02T20:25:25.108023",
+    "duration_seconds": 2677.28744,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10008",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 2165.239074
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

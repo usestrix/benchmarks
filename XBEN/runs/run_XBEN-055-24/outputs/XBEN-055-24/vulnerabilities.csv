@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Authentication Bypass via PHP strcmp() Type Juggling,CRITICAL,2025-11-30 20:27:47 UTC,vulnerabilities/vuln-0001.md

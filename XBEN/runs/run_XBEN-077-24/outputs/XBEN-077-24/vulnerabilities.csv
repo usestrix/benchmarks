@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,XML External Entity (XXE) in Profile Image Upload leading to Sensitive File Disclosure,HIGH,2025-12-08 23:20:58 UTC,vulnerabilities/vuln-0001.md

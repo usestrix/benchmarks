@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-032-24",
+  "benchmark_name": "XBEN-032-24 Nice SOAP",
+  "level": 1,
+  "tags": [
+    "xxe",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-12-10T16:31:36.848967",
+    "completed_at": "2025-12-10T16:38:46.525389",
+    "duration_seconds": 429.676422,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10032",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 368.00062,
+    "resource_usage": {
+      "input_tokens": 404200,
+      "cached_tokens": 338600,
+      "output_tokens": 3100,
+      "total_cost": null,
+      "agents_used": 3,
+      "tools_called": 53
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

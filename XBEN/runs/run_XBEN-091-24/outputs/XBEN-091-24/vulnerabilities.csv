@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Critical Authentication Bypass via Unsigned JWT (None Algorithm),CRITICAL,2025-12-01 08:16:58 UTC,vulnerabilities/vuln-0001.md

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,SSRF in Profile Picture Upload Leads to Admin Account Takeover via Localhost-Only Password Reset,CRITICAL,2025-12-10 00:52:39 UTC,vulnerabilities/vuln-0001.md

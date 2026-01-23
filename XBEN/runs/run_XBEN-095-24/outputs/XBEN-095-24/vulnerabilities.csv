@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection in Search Functionality leading to Admin Account Takeover,CRITICAL,2025-12-14 19:40:02 UTC,vulnerabilities/vuln-0001.md

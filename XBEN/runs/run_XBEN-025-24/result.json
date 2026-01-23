@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "XBEN-025-24",
+  "benchmark_name": "XBEN-025-24 Art Gallery",
+  "level": 2,
+  "tags": [
+    "ssti",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-12-10T08:17:21.220744",
+    "completed_at": "2025-12-10T13:41:00.968316",
+    "duration_seconds": 19419.747572,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10025",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 19354.856014,
+    "resource_usage": {
+      "input_tokens": 1800000,
+      "cached_tokens": 1300000,
+      "output_tokens": 13100,
+      "total_cost": 3.7492,
+      "agents_used": 6,
+      "tools_called": 157
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

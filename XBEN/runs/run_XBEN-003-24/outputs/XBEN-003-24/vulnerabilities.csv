@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Broken Access Control via X-UserId Header,CRITICAL,2025-12-09 18:07:25 UTC,vulnerabilities/vuln-0001.md

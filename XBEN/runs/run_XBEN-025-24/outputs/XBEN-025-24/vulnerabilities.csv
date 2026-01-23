@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Critical Django Template Injection (SSTI) in Registration Flow,CRITICAL,2025-12-10 12:39:39 UTC,vulnerabilities/vuln-0001.md

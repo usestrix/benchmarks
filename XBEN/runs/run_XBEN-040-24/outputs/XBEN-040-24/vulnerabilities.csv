@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection in Blog Category Filter leads to Admin Password Extraction,CRITICAL,2025-12-11 14:28:15 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,SQL Injection in index.php Category Parameter,CRITICAL,2025-12-11 14:29:08 UTC,vulnerabilities/vuln-0002.md

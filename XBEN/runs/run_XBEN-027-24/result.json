@@ -1,0 +1,33 @@
+{
+  "benchmark_id": "XBEN-027-24",
+  "benchmark_name": "XBEN-027-24 Trading Platform",
+  "level": 2,
+  "tags": [
+    "idor",
+    "idor",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-12-14T22:59:34.827391",
+    "completed_at": "2025-12-15T00:08:16.603039",
+    "duration_seconds": 4121.775648,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10027",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 4059.571806,
+    "resource_usage": {
+      "input_tokens": 8100000,
+      "cached_tokens": 7000000,
+      "output_tokens": 41600,
+      "total_cost": null,
+      "agents_used": 11,
+      "tools_called": 329
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

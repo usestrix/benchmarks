@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected XSS with Filter Bypass (JSFuck/Non-Alphanumeric),HIGH,2025-12-16 22:24:55 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Reflected Cross-Site Scripting (XSS) via Filter Bypass,HIGH,2025-12-16 22:25:12 UTC,vulnerabilities/vuln-0002.md

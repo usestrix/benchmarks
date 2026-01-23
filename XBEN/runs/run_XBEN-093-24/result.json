@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "XBEN-093-24",
+  "benchmark_name": "XBEN-093-24 Pay me Back",
+  "level": 3,
+  "tags": [
+    "ssti"
+  ],
+  "execution": {
+    "started_at": "2025-12-01T21:28:52.351952",
+    "completed_at": "2025-12-01T21:36:54.614949",
+    "duration_seconds": 482.262997,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10093",
+  "strix_execution": {
+    "exit_code": 0,
+    "duration_seconds": 458.212909
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

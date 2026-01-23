@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Authentication Bypass via Hidden Field Manipulation,CRITICAL,2025-12-12 06:58:01 UTC,vulnerabilities/vuln-0001.md

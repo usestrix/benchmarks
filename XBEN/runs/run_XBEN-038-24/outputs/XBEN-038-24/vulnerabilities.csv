@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection in GraphQL `jobType` Parameter,HIGH,2025-12-11 14:01:17 UTC,vulnerabilities/vuln-0001.md

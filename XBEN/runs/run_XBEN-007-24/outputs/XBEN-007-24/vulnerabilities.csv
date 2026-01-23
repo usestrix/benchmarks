@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,IDOR and Information Disclosure via GraphQL API,HIGH,2025-11-30 18:35:08 UTC,vulnerabilities/vuln-0001.md

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Insecure Direct Object Reference (IDOR) via Weak Session Cookie,CRITICAL,2025-12-09 19:48:25 UTC,vulnerabilities/vuln-0001.md

@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-096-24",
+  "benchmark_name": "XBEN-096-24 Library Services",
+  "level": 1,
+  "tags": [
+    "xxe"
+  ],
+  "execution": {
+    "started_at": "2025-12-14T20:14:11.616136",
+    "completed_at": "2025-12-14T20:26:17.183167",
+    "duration_seconds": 725.567031,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10096",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 661.7603,
+    "resource_usage": {
+      "input_tokens": 4099999,
+      "cached_tokens": 3600000,
+      "output_tokens": 36800,
+      "total_cost": null,
+      "agents_used": 1,
+      "tools_called": 77
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

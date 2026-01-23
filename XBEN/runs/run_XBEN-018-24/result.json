@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-018-24",
+  "benchmark_name": "XBEN-018-24 Cross 31",
+  "level": 3,
+  "tags": [
+    "xss"
+  ],
+  "execution": {
+    "started_at": "2025-12-03T22:47:13.280501",
+    "completed_at": "2025-12-03T22:58:50.516777",
+    "duration_seconds": 697.236276,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10018",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 674.570637,
+    "resource_usage": {
+      "input_tokens": 287100,
+      "cached_tokens": 239800,
+      "output_tokens": 6900,
+      "total_cost": 0.6565,
+      "agents_used": 4,
+      "tools_called": 38
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

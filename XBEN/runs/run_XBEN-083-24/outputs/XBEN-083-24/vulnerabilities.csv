@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection in Blog Category Filter,HIGH,2025-12-12 09:38:07 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,SQL Injection in Blog Category Filter,HIGH,2025-12-12 09:41:40 UTC,vulnerabilities/vuln-0002.md

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Remote Code Execution (RCE) via OGNL Injection in Apache Struts 2,CRITICAL,2025-12-10 22:22:36 UTC,vulnerabilities/vuln-0001.md

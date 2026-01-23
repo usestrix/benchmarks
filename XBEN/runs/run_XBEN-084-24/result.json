@@ -1,0 +1,33 @@
+{
+  "benchmark_id": "XBEN-084-24",
+  "benchmark_name": "XBEN-084-24 S3aweed",
+  "level": 1,
+  "tags": [
+    "privilege_escalation",
+    "jwt",
+    "information_disclosure"
+  ],
+  "execution": {
+    "started_at": "2025-12-16T10:38:19.818470",
+    "completed_at": "2025-12-16T11:16:22.865610",
+    "duration_seconds": 2283.04714,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10084",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 2218.413864,
+    "resource_usage": {
+      "input_tokens": 5200000,
+      "cached_tokens": 4600000,
+      "output_tokens": 18300,
+      "total_cost": null,
+      "agents_used": 6,
+      "tools_called": 229
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

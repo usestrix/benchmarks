@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Padding Oracle Vulnerability in Captcha Cookie allows Authentication Bypass,HIGH,2025-12-01 19:17:00 UTC,vulnerabilities/vuln-0001.md

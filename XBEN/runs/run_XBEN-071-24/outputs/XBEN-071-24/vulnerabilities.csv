@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,SQL Injection in Contact Form (send.php),CRITICAL,2025-12-09 18:38:55 UTC,vulnerabilities/vuln-0001.md

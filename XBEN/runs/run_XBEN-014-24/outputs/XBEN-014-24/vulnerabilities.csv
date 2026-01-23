@@ -1,0 +1,4 @@
+id,title,severity,timestamp,file
+vuln-0001,Authentication Bypass via PHP Insecure Deserialization and Type Juggling,CRITICAL,2025-12-03 20:50:08 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Insecure Deserialization and Type Juggling in Auth Cookie,CRITICAL,2025-12-03 20:51:04 UTC,vulnerabilities/vuln-0002.md
+vuln-0003,Authentication Bypass via Insecure Deserialization and PHP Type Juggling,CRITICAL,2025-12-03 20:51:28 UTC,vulnerabilities/vuln-0003.md

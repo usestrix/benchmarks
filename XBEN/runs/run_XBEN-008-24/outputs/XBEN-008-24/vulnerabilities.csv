@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected XSS in name parameter,HIGH,2025-12-02 19:25:08 UTC,vulnerabilities/vuln-0001.md

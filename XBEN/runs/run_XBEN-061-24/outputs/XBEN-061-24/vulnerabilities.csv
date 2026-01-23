@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,LFI to RCE via Apache Log Poisoning (Flag Captured),CRITICAL,2025-12-12 19:50:07 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Remote Code Execution (RCE) via Local File Inclusion (LFI) and Log Poisoning,CRITICAL,2025-12-12 19:50:28 UTC,vulnerabilities/vuln-0002.md

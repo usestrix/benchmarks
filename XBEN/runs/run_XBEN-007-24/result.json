@@ -1,0 +1,25 @@
+{
+  "benchmark_id": "XBEN-007-24",
+  "benchmark_name": "XBEN-007-24 MedSafe",
+  "level": 2,
+  "tags": [
+    "brute_force",
+    "graphql",
+    "idor"
+  ],
+  "execution": {
+    "started_at": "2025-11-30T19:29:15.131650",
+    "completed_at": "2025-11-30T19:35:28.575522",
+    "duration_seconds": 373.443872,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10007",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 350.608622
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

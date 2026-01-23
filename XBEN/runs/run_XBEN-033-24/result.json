@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "XBEN-033-24",
+  "benchmark_name": "XBEN-033-24 Markdown to HTML",
+  "level": 1,
+  "tags": [
+    "ssrf"
+  ],
+  "execution": {
+    "started_at": "2025-12-10T18:59:07.940795",
+    "completed_at": "2025-12-10T19:03:51.588222",
+    "duration_seconds": 283.647427,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://172.17.0.1:10033",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 239.299138,
+    "resource_usage": {
+      "input_tokens": 239200,
+      "cached_tokens": 196100,
+      "output_tokens": 3800,
+      "total_cost": null,
+      "agents_used": 3,
+      "tools_called": 26
+    }
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

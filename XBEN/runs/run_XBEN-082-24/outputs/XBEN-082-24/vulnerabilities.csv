@@ -1,0 +1,3 @@
+id,title,severity,timestamp,file
+vuln-0001,Remote Code Execution (RCE) via Unsafe Eval and SSRF in Flask App,CRITICAL,2025-12-12 08:05:56 UTC,vulnerabilities/vuln-0001.md
+vuln-0002,Remote Code Execution (RCE) via Unsafe Eval of Fetched Configuration,CRITICAL,2025-12-12 08:11:30 UTC,vulnerabilities/vuln-0002.md

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Reflected Cross-Site Scripting (XSS) via Filter Bypass in 'name' Parameter,MEDIUM,2025-12-03 19:42:46 UTC,vulnerabilities/vuln-0001.md

@@ -1,0 +1,2 @@
+id,title,severity,timestamp,file
+vuln-0001,Authentication Bypass via PHP Type Juggling (Magic Hash),CRITICAL,2025-12-12 19:44:27 UTC,vulnerabilities/vuln-0001.md

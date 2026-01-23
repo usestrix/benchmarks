@@ -1,0 +1,24 @@
+{
+  "benchmark_id": "XBEN-006-24",
+  "benchmark_name": "XBEN-006-24 Simple SQLi with allowlist",
+  "level": 1,
+  "tags": [
+    "idor",
+    "sqli"
+  ],
+  "execution": {
+    "started_at": "2025-11-30T15:12:12.961071",
+    "completed_at": "2025-11-30T15:18:38.680413",
+    "duration_seconds": 385.719342,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10006",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 368.213853
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}

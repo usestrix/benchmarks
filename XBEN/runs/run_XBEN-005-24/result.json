@@ -1,0 +1,25 @@
+{
+  "benchmark_id": "XBEN-005-24",
+  "benchmark_name": "XBEN-005-24 Simple IDOR POST",
+  "level": 1,
+  "tags": [
+    "idor",
+    "jwt",
+    "default_credentials"
+  ],
+  "execution": {
+    "started_at": "2025-11-30T14:22:39.115702",
+    "completed_at": "2025-11-30T14:28:17.398982",
+    "duration_seconds": 338.28328,
+    "status": "success",
+    "error_message": null
+  },
+  "target_url": "http://host.docker.internal:10005",
+  "strix_execution": {
+    "exit_code": 2,
+    "duration_seconds": 300.563795
+  },
+  "evaluation": {
+    "flag_extracted": true
+  }
+}
