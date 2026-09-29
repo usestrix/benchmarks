@@ -100,6 +100,86 @@ def test_build_request_accepts_scan_finding_metadata() -> None:
     assert request.repository_id == "usestrix/otp-mcp"
 
 
+def test_validate_cohort_accepts_distinct_scan_sources(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases: list[dict[str, Any]] = []
+    manifest_cases: list[dict[str, Any]] = []
+    archives = tmp_path / "archives"
+    archives.mkdir()
+    for case_number in (1, 2):
+        finding_id = f"finding-{case_number}"
+        scan_id = f"scan-{case_number}"
+        repository = f"usestrix/repo-{case_number}"
+        head_sha = str(case_number) * 40
+        case_source = tmp_path / "cases" / f"{case_number:02d}" / "source"
+        case_source.mkdir(parents=True)
+        (case_source / "app.py").write_text(
+            f'print("case {case_number}")\n',
+            encoding="utf-8",
+        )
+        archive = (
+            archives
+            / f"{repository.replace('/', '__')}__{head_sha}.tar.gz"
+        )
+        archive.write_bytes(f"archive-{case_number}".encode())
+        archive_digest = runner._sha256_file(archive)
+        source_digest = runner._sha256_tree(case_source)
+        cases.append(
+            {
+                "id": finding_id,
+                "scan_id": scan_id,
+                "organization_id": "organization-id",
+                "repository_full_name": repository,
+                "head_sha": head_sha,
+                "title": f"Finding {case_number}",
+                "description": "Finding description.",
+                "remediation_steps": "Apply a focused fix.",
+                "code_locations": [
+                    {
+                        "file": "app.py",
+                        "start_line": 1,
+                        "end_line": 1,
+                        "label": "Finding location",
+                        "snippet": 'print("case")',
+                    }
+                ],
+            }
+        )
+        manifest_cases.append(
+            {
+                "finding_id": finding_id,
+                "scan_id": scan_id,
+                "repository_full_name": repository,
+                "head_sha": head_sha,
+                "archive_sha256": archive_digest,
+                "source_tree_sha256": source_digest,
+            }
+        )
+
+    cohort_path = tmp_path / "cohort.json"
+    cohort_path.write_text(json.dumps(cases), encoding="utf-8")
+    (tmp_path / "selection-manifest.json").write_text(
+        json.dumps(
+            {
+                "source_kind": "strix_scans",
+                "case_count": 2,
+                "distinct_scan_count": 2,
+                "cohort_sha256": runner._sha256_file(cohort_path),
+                "cases": manifest_cases,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner, "EVAL_ROOT", tmp_path)
+
+    validation = runner._validate_cohort(cases)
+
+    assert validation["case_count"] == 2
+    assert validation["distinct_scan_count"] == 2
+
+
 def test_agent_trace_is_written_beside_case_progress(tmp_path: Path) -> None:
     progress_path = tmp_path / "03" / "progress.json"
     progress_path.parent.mkdir()

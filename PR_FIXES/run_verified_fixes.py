@@ -521,21 +521,55 @@ def _validate_cohort(cohort: list[dict[str, Any]]) -> dict[str, Any]:
             "Frozen cohort checksum does not match selection-manifest.json."
         )
     expected_source_digest = manifest.get("source", {}).get("source_tree_sha256")
+    manifest_cases = {
+        str(item["finding_id"]): item
+        for item in manifest.get("cases", [])
+        if isinstance(item, dict) and item.get("finding_id")
+    }
+    scan_ids = [str(case["scan_id"]) for case in cohort if case.get("scan_id")]
+    expected_distinct_scan_count = manifest.get("distinct_scan_count")
+    if (
+        expected_distinct_scan_count is not None
+        and len(set(scan_ids)) != int(expected_distinct_scan_count)
+    ):
+        raise RuntimeError(
+            "Frozen cohort distinct scan count does not match "
+            "selection-manifest.json."
+        )
+    if manifest.get("source_kind") == "strix_scans":
+        if len(scan_ids) != len(cohort):
+            raise RuntimeError("Every scan cohort case must include scan_id.")
+        if any(case.get("pr_review_id") for case in cohort):
+            raise RuntimeError("Scan cohort cases must not include pr_review_id.")
 
     cases: list[dict[str, Any]] = []
     for case_number, case in enumerate(cohort, start=1):
         label = _case_label(case_number)
+        manifest_case = manifest_cases.get(str(case["id"]), {})
+        for field in ("scan_id", "repository_full_name", "head_sha"):
+            expected = manifest_case.get(field)
+            if expected is not None and str(case.get(field)) != str(expected):
+                raise RuntimeError(
+                    f"Frozen case {label} {field} does not match "
+                    "selection-manifest.json."
+                )
         source = EVAL_ROOT / "cases" / label / "source"
         if not source.is_dir():
             raise FileNotFoundError(f"Frozen source is missing: {source}")
         source_digest = _sha256_tree(source)
-        if expected_source_digest and source_digest != expected_source_digest:
+        case_source_digest = (
+            manifest_case.get("source_tree_sha256") or expected_source_digest
+        )
+        if case_source_digest and source_digest != case_source_digest:
             raise RuntimeError(
                 f"Frozen source checksum does not match for case {label}."
             )
         archive = _archive_path(case)
         archive_digest = _sha256_file(archive)
-        expected_archive_digest = case.get("source_archive_sha256")
+        expected_archive_digest = (
+            manifest_case.get("archive_sha256")
+            or case.get("source_archive_sha256")
+        )
         if (
             expected_archive_digest
             and archive_digest != expected_archive_digest
@@ -560,6 +594,7 @@ def _validate_cohort(cohort: list[dict[str, Any]]) -> dict[str, Any]:
         )
     return {
         "case_count": len(cases),
+        "distinct_scan_count": len(set(scan_ids)),
         "cohort_sha256": cohort_digest,
         "selection_manifest_sha256": (
             _sha256_file(manifest_path) if manifest_path.is_file() else None
