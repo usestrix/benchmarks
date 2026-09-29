@@ -80,6 +80,32 @@ def test_build_request_uses_agent_review_limits() -> None:
     assert request.timeout_seconds == 7200
 
 
+def test_agent_trace_is_written_beside_case_progress(tmp_path: Path) -> None:
+    progress_path = tmp_path / "03" / "progress.json"
+    progress_path.parent.mkdir()
+    progress_token = runner._PROGRESS_PATH.set(progress_path)
+    try:
+        runner._append_agent_trace(
+            actor="Repair agent",
+            kind="tool",
+            title="read_file",
+            arguments='{"path":"src/app.ts"}',
+            result="file contents",
+        )
+    finally:
+        runner._PROGRESS_PATH.reset(progress_token)
+
+    events = [
+        json.loads(line)
+        for line in (progress_path.parent / "agent-trace.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert events[0]["actor"] == "Repair agent"
+    assert events[0]["title"] == "read_file"
+    assert events[0]["arguments"] == '{"path":"src/app.ts"}'
+
+
 @pytest.mark.asyncio
 async def test_instrumented_command_writes_only_outside_source(
     tmp_path: Path,

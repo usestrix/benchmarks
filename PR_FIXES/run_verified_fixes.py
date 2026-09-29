@@ -73,6 +73,36 @@ _PROGRESS_PATH: ContextVar[Path | None] = ContextVar(
 )
 
 
+def _append_agent_trace(
+    *,
+    actor: str,
+    kind: str,
+    title: str,
+    status: str = "completed",
+    arguments: str = "",
+    result: str = "",
+    detail: str = "",
+) -> None:
+    progress_path = _PROGRESS_PATH.get()
+    if progress_path is None:
+        return
+    trace_path = progress_path.parent / "agent-trace.jsonl"
+    timestamp = datetime.now(UTC)
+    event = {
+        "id": f"{time.time_ns()}-{kind}",
+        "timestamp": timestamp.isoformat(),
+        "actor": actor,
+        "kind": kind,
+        "title": title,
+        "status": status,
+        "arguments": arguments[-6000:],
+        "result": result[-12000:],
+        "detail": detail[-2000:],
+    }
+    with trace_path.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(event, sort_keys=True) + "\n")
+
+
 def _telemetry_root(sandbox_workspace: str) -> Path:
     source_root = Path(sandbox_workspace).resolve()
     telemetry_root = source_root.parent / ".strix-benchmark"
@@ -152,11 +182,95 @@ def _update_progress(
 _repair_call = fix_runtime_module.ManagedRepairAgent.__call__
 _command_call = fix_runtime_module._RuntimeEnvironment.run_isolated_command
 _review_call = fix_runtime_module.ManagedIndependentVerifier.__call__
+_tool_trace_llm_start = fix_runtime_module._ToolTrace.on_llm_start
+_tool_trace_llm_end = fix_runtime_module._ToolTrace.on_llm_end
+_tool_trace_tool_start = fix_runtime_module._ToolTrace.on_tool_start
+_tool_trace_tool_end = fix_runtime_module._ToolTrace.on_tool_end
+
+
+async def _instrumented_llm_start(
+    self: Any,
+    context: Any,
+    agent: Any,
+    system_prompt: str | None,
+    input_items: Any,
+) -> None:
+    await _tool_trace_llm_start(
+        self,
+        context,
+        agent,
+        system_prompt,
+        input_items,
+    )
+    _append_agent_trace(
+        actor=str(agent.name),
+        kind="model",
+        title=f"Model turn {self.turns}",
+        status="running",
+        detail="The agent is choosing its next action.",
+    )
+
+
+async def _instrumented_llm_end(
+    self: Any,
+    context: Any,
+    agent: Any,
+    response: Any,
+) -> None:
+    await _tool_trace_llm_end(self, context, agent, response)
+    _append_agent_trace(
+        actor=str(agent.name),
+        kind="model",
+        title=f"Model turn {self.turns}",
+        detail="The model response was received.",
+    )
+
+
+async def _instrumented_tool_start(
+    self: Any,
+    context: Any,
+    agent: Any,
+    tool: Any,
+) -> None:
+    await _tool_trace_tool_start(self, context, agent, tool)
+    _append_agent_trace(
+        actor=str(agent.name),
+        kind="tool",
+        title=str(getattr(tool, "name", type(tool).__name__)),
+        status="running",
+        arguments=str(getattr(context, "tool_arguments", "") or ""),
+        detail="Tool call started.",
+    )
+
+
+async def _instrumented_tool_end(
+    self: Any,
+    context: Any,
+    agent: Any,
+    tool: Any,
+    result: Any,
+) -> None:
+    await _tool_trace_tool_end(self, context, agent, tool, result)
+    _append_agent_trace(
+        actor=str(agent.name),
+        kind="tool",
+        title=str(getattr(tool, "name", type(tool).__name__)),
+        arguments=str(getattr(context, "tool_arguments", "") or ""),
+        result=str(result),
+        detail="Tool call completed.",
+    )
 
 
 async def _instrumented_repair(
     self: Any, context: Any, previous_checks: Any
 ) -> Any:
+    _append_agent_trace(
+        actor="Repair agent",
+        kind="handoff",
+        title=f"Repair attempt {context.attempt}",
+        status="running",
+        detail="The controller handed the case to the repair agent.",
+    )
     _update_progress(
         "patch",
         "running",
@@ -181,6 +295,14 @@ async def _instrumented_repair(
         "Patch submitted." if changed else "No changed files were submitted.",
         detail=str(outcome.summary or ""),
         attempt=context.attempt,
+    )
+    _append_agent_trace(
+        actor="Repair agent",
+        kind="handoff",
+        title=f"Repair attempt {context.attempt} returned",
+        status="completed" if changed else "failed",
+        result=str(outcome.summary or ""),
+        detail="The repair agent returned control to the controller.",
     )
     return outcome
 
@@ -290,6 +412,13 @@ async def _instrumented_command(
 async def _instrumented_review(
     self: Any, context: Any, checks: Any
 ) -> Any:
+    _append_agent_trace(
+        actor="Reviewer agent",
+        kind="handoff",
+        title="Independent review",
+        status="running",
+        detail="The controller handed the patch to the independent reviewer.",
+    )
     _update_progress(
         "verify",
         "running",
@@ -314,12 +443,24 @@ async def _instrumented_review(
         "Independent review passed." if passed else "Independent review found a required concern.",
         detail=str(result.summary or ""),
     )
+    _append_agent_trace(
+        actor="Reviewer agent",
+        kind="handoff",
+        title="Independent review returned",
+        status="completed" if passed else "failed",
+        result=str(result.summary or ""),
+        detail="The reviewer returned its delivery decision.",
+    )
     return result
 
 
 fix_runtime_module.ManagedRepairAgent.__call__ = _instrumented_repair
 fix_runtime_module._RuntimeEnvironment.run_isolated_command = _instrumented_command
 fix_runtime_module.ManagedIndependentVerifier.__call__ = _instrumented_review
+fix_runtime_module._ToolTrace.on_llm_start = _instrumented_llm_start
+fix_runtime_module._ToolTrace.on_llm_end = _instrumented_llm_end
+fix_runtime_module._ToolTrace.on_tool_start = _instrumented_tool_start
+fix_runtime_module._ToolTrace.on_tool_end = _instrumented_tool_end
 
 
 def _parse_args() -> argparse.Namespace:

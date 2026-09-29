@@ -33,6 +33,7 @@ STARTED_AT = datetime.fromisoformat(
 
 MAX_ACTIVITY = 30
 MAX_EVENTS = 40
+MAX_TRACE_EVENTS = 300
 MAX_LOG_LINES = 120
 MAX_OUTPUT_LENGTH = 800
 EVENT_HISTORY: dict[int, list[dict[str, str]]] = {}
@@ -222,8 +223,8 @@ PAGE = r"""<!doctype html>
     .flow-state::before {
       content: ""; width: 7px; height: 7px; border-radius: 50%; background: #8490a1;
     }
-    .flow-state-passed, .flow-state-ready { color: #91f2c3; }
-    .flow-state-passed::before, .flow-state-ready::before { background: #42d392; }
+    .flow-state-passed, .flow-state-ready, .flow-state-completed { color: #91f2c3; }
+    .flow-state-passed::before, .flow-state-ready::before, .flow-state-completed::before { background: #42d392; }
     .flow-state-warning, .flow-state-blocked { color: #ffdc80; }
     .flow-state-warning::before, .flow-state-blocked::before { background: #e6b94f; }
     .flow-state-failed, .flow-state-rejected { color: #ff9aa5; }
@@ -261,6 +262,60 @@ PAGE = r"""<!doctype html>
     .activity-panel .activity { margin-top: 8px; }
     .activity-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
     .activity-meta { flex: 0 0 auto; color: #9ba7b8; font-variant-numeric: tabular-nums; }
+    .agent-trace {
+      position: relative; display: grid; gap: 0; max-height: 620px; overflow: auto;
+      overscroll-behavior: contain; padding: 4px 4px 4px 0;
+    }
+    .agent-trace::before {
+      content: ""; position: absolute; left: 99px; top: 18px; bottom: 18px;
+      width: 1px; background: #293343;
+    }
+    .trace-event {
+      position: relative; display: grid; grid-template-columns: 82px 18px minmax(0, 1fr);
+      gap: 10px; align-items: start; min-width: 0; padding: 5px 0;
+    }
+    .trace-time {
+      padding-top: 12px; color: #8996a8; text-align: right;
+      font: 11px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .trace-marker {
+      z-index: 1; width: 10px; height: 10px; margin: 14px auto 0;
+      border: 2px solid #0a0a0a; border-radius: 50%; background: #7f97ff;
+      box-shadow: 0 0 0 1px #44516a;
+    }
+    .trace-marker-completed { background: #42d392; }
+    .trace-marker-failed { background: #f05d6c; }
+    .trace-card {
+      min-width: 0; border: 1px solid #26303e; border-radius: 10px;
+      background: #0d1219;
+    }
+    .trace-card[open] { border-color: #43516a; }
+    .trace-card > summary, .trace-static {
+      min-height: 38px; padding: 9px 10px; list-style: none;
+    }
+    .trace-card > summary {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .trace-card > summary::-webkit-details-marker { display: none; }
+    .trace-actor, .trace-kind {
+      flex: 0 0 auto; border: 1px solid #324055; border-radius: 999px;
+      padding: 3px 7px; color: #b8c5d6; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .045em;
+    }
+    .trace-kind { border-color: #3e374c; color: #c7b7dc; }
+    .trace-title { min-width: 0; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+    .trace-detail { padding: 0 10px 10px; color: #8e9caf; font-size: 12px; overflow-wrap: anywhere; }
+    .trace-label {
+      margin: 0 10px 5px; color: #8190a4; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .trace-output {
+      max-height: 260px; margin: 0 10px 10px; padding: 10px; overflow: auto;
+      overscroll-behavior: contain; border-radius: 8px; background: #080b10;
+      color: #c2cedd; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+      white-space: pre; tab-size: 2;
+    }
     .command, .output, .log {
       margin-top: 6px; color: #aab6c6; font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
       white-space: pre-wrap; overflow-wrap: anywhere;
@@ -299,6 +354,9 @@ PAGE = r"""<!doctype html>
       .summary-flow { grid-template-columns: 1fr; }
       .event-row { grid-template-columns: 78px minmax(0, 1fr); }
       .event-kind { display: none; }
+      .agent-trace::before { left: 7px; }
+      .trace-event { grid-template-columns: 14px minmax(0, 1fr); gap: 8px; }
+      .trace-time { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -374,6 +432,31 @@ PAGE = r"""<!doctype html>
             <div>${escapeHtml(item.message)}</div>
           </div>`).join("")}</div>`
       : `<div class="empty">No events are available yet.</div>`;
+    const renderAgentTrace = (items, caseNumber) => items.length
+      ? `<div class="agent-trace" id="agent-trace-${caseNumber}" aria-label="Live agent graph">
+          ${items.map(item => {
+            const detailId = `trace-${caseNumber}-${item.id}`;
+            const hasEvidence = item.arguments || item.result || item.detail;
+            const head = `
+              <span class="trace-actor">${escapeHtml(item.actor)}</span>
+              <span class="trace-kind">${escapeHtml(item.kind)}</span>
+              <span class="trace-title">${escapeHtml(item.title)}</span>
+              <span class="flow-state flow-state-${escapeHtml(item.status)}">${escapeHtml(label(item.status))}</span>`;
+            return `
+              <div class="trace-event">
+                <time class="trace-time" datetime="${escapeHtml(item.timestamp)}">${escapeHtml(item.time)}</time>
+                <span class="trace-marker trace-marker-${escapeHtml(item.status)}" aria-hidden="true"></span>
+                ${hasEvidence ? `
+                  <details class="trace-card" id="${escapeHtml(detailId)}">
+                    <summary>${head}</summary>
+                    ${item.detail ? `<div class="trace-detail">${escapeHtml(item.detail)}</div>` : ""}
+                    ${item.arguments ? `<div class="trace-label">Arguments</div><pre class="trace-output" tabindex="0" translate="no">${escapeHtml(item.arguments)}</pre>` : ""}
+                    ${item.result ? `<div class="trace-label">Result</div><pre class="trace-output" tabindex="0" translate="no">${escapeHtml(item.result)}</pre>` : ""}
+                  </details>` : `<div class="trace-card trace-static">${head}</div>`}
+              </div>`;
+          }).join("")}
+        </div>`
+      : `<div class="empty">Waiting for the first model or tool event.</div>`;
     const renderGaps = items => items.length
       ? `<div class="gaps">${items.map(item => `<div class="gap-row">${escapeHtml(item)}</div>`).join("")}</div>`
       : `<div class="empty">No blocker or required gap is recorded.</div>`;
@@ -448,6 +531,10 @@ PAGE = r"""<!doctype html>
             ${renderFlow(item.flow, item.number)}
           </div>
           <div class="section">
+            <h3>Live agent graph</h3>
+            ${renderAgentTrace(item.agent_trace, item.number)}
+          </div>
+          <div class="section">
             <h3>Case event log</h3>
             ${renderEvents(item.events)}
           </div>
@@ -479,6 +566,15 @@ PAGE = r"""<!doctype html>
             {top: node.scrollTop, left: node.scrollLeft, follow: node.scrollHeight - node.scrollTop - node.clientHeight < 48}
           ])
         );
+        const traceScroll = new Map(
+          [...document.querySelectorAll(".agent-trace")].map(node => [
+            node.id,
+            {top: node.scrollTop, left: node.scrollLeft, follow: node.scrollHeight - node.scrollTop - node.clientHeight < 48}
+          ])
+        );
+        const openTraceCards = new Set(
+          [...document.querySelectorAll(".trace-card[open]")].map(node => node.id)
+        );
         const runnerLog = document.querySelector("#runner-log");
         const runnerScroll = {
           top: runnerLog.scrollTop,
@@ -498,6 +594,18 @@ PAGE = r"""<!doctype html>
           document.scrollingElement.scrollTop = pageScroll;
           document.querySelectorAll(".terminal-output").forEach(node => {
             const saved = terminalScroll.get(node.id);
+            if (!saved) {
+              node.scrollTop = node.scrollHeight;
+              return;
+            }
+            node.scrollTop = saved.follow ? node.scrollHeight : saved.top;
+            node.scrollLeft = saved.left;
+          });
+          document.querySelectorAll(".trace-card").forEach(node => {
+            if (openTraceCards.has(node.id)) node.open = true;
+          });
+          document.querySelectorAll(".agent-trace").forEach(node => {
+            const saved = traceScroll.get(node.id);
             if (!saved) {
               node.scrollTop = node.scrollHeight;
               return;
@@ -539,6 +647,43 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     except (OSError, json.JSONDecodeError):
         return None
     return value if isinstance(value, dict) else None
+
+
+def _read_agent_trace(case_path: Path) -> list[dict[str, str]]:
+    trace_path = case_path / "agent-trace.jsonl"
+    try:
+        lines = trace_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    events: list[dict[str, str]] = []
+    for line in lines[-MAX_TRACE_EVENTS:]:
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict):
+            continue
+        timestamp_text = str(value.get("timestamp") or "")
+        try:
+            timestamp = datetime.fromisoformat(timestamp_text.replace("Z", "+00:00"))
+            time_text = timestamp.astimezone(timezone.utc).strftime("%H:%M:%S UTC")
+        except ValueError:
+            time_text = "—"
+        events.append(
+            {
+                "id": str(value.get("id") or len(events)),
+                "timestamp": timestamp_text,
+                "time": time_text,
+                "actor": str(value.get("actor") or "Agent"),
+                "kind": str(value.get("kind") or "event"),
+                "title": str(value.get("title") or "Agent event"),
+                "status": str(value.get("status") or "completed"),
+                "arguments": str(value.get("arguments") or ""),
+                "result": str(value.get("result") or ""),
+                "detail": str(value.get("detail") or ""),
+            }
+        )
+    return events
 
 
 def _truncate(value: Any, length: int = MAX_OUTPUT_LENGTH) -> str:
@@ -1215,6 +1360,7 @@ def _case_status(
             "repository": repository,
             "security_invariant": _truncate(security_invariant, 1000),
             "changed_files": changed_files[:30],
+            "agent_trace": _read_agent_trace(case_path),
             **details,
         }
 
@@ -1301,6 +1447,7 @@ def _case_status(
             "verifier_evidence": ["Verification is still running."],
             "activity": [],
             "flow": flow,
+            "agent_trace": _read_agent_trace(case_path),
             "gaps": [],
             "events": events[-MAX_EVENTS:],
             "latest_event": case_logs[-1] if case_logs else latest_event,
@@ -1319,6 +1466,7 @@ def _case_status(
         "verifier_evidence": [],
         "activity": [],
         "flow": _live_flow("Queued", "Waiting for an execution slot.", "queued"),
+        "agent_trace": [],
         "gaps": [],
         "events": [],
         "latest_event": "Waiting for an execution slot.",

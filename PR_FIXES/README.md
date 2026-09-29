@@ -80,6 +80,8 @@ python PR_FIXES/benchmark_dashboard_server.py
 
 The dashboard displays Build patch, Compile fix, Run unit tests, and Verify fix.
 Repair owns the first three stages; independent review owns the fourth.
+Each running case also exposes an ordered live agent graph with model turns,
+tool calls, arguments, result excerpts, and repair/reviewer handoffs.
 The runner writes live sandbox markers and command logs to
 `/workspace/.strix-benchmark`, outside the protected repository at
 `/workspace/source`.
