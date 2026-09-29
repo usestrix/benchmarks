@@ -5,6 +5,7 @@ This directory preserves the verified-fix replay and independent grading scripts
 ## Scripts
 
 - `run_verified_fixes.py` replays the frozen 100-case PR-review cohort through the OSS and Strix Pro fix-preparation runtime.
+- `benchmark_dashboard_server.py` serves live four-stage progress, command output, and timestamped events from an active replay.
 - `grade_workflow.py` runs the final five-group review for the timed 15-case gate and reconciles the results.
 - `grade_15_case_gate_workflow.py` runs the earlier three-group 15-case grading workflow.
 - `grade_verified_fixes_workflow.py` runs the 100-case grading workflow.
@@ -59,6 +60,23 @@ The replay supports:
 
 The runner accepts any non-empty frozen cohort and validates `--from` and
 `--to` against its actual size.
+
+## Live dashboard
+
+Start the dashboard against the replay output directory:
+
+```bash
+export STRIX_BENCHMARK_OUTPUT=/path/to/independent-run
+export BENCHMARK_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+export BENCHMARK_START=1
+export BENCHMARK_TOTAL=15
+python PR_FIXES/benchmark_dashboard_server.py
+```
+
+The dashboard displays Build patch, Compile fix, Run unit tests, and Verify fix.
+The runner writes live sandbox markers and command logs to
+`/workspace/.strix-benchmark`, outside the protected repository at
+`/workspace/source`.
 
 ## Fresh deterministic slice
 

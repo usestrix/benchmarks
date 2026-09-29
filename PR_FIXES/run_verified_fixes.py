@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import hashlib
 import importlib.metadata
+import io
 import json
 import os
 import shutil
@@ -15,6 +16,7 @@ import sys
 import time
 import traceback
 import zipfile
+from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
 from statistics import mean, median
@@ -58,7 +60,236 @@ from strix.fix import (  # noqa: E402
 )
 from strix.fix.locations import anchor_candidate  # noqa: E402
 
+from strix_pro import fix_runtime as fix_runtime_module  # noqa: E402
 from strix_pro.fix_runtime import run_isolated_fix_preparation  # noqa: E402
+
+
+_PROGRESS_PATH: ContextVar[Path | None] = ContextVar(
+    "benchmark_progress_path", default=None
+)
+
+
+def _telemetry_root(sandbox_workspace: str) -> Path:
+    source_root = Path(sandbox_workspace).resolve()
+    telemetry_root = source_root.parent / ".strix-benchmark"
+    if telemetry_root.is_relative_to(source_root):
+        raise RuntimeError("Benchmark telemetry must stay outside repository source.")
+    return telemetry_root
+
+
+def _initial_progress() -> dict[str, Any]:
+    return {
+        "attempt": 1,
+        "current_stage": "patch",
+        "latest_event": "The repair agent is inspecting the frozen workspace.",
+        "stages": {
+            "patch": {
+                "status": "pending",
+                "meta": "Waiting for the repair agent.",
+                "detail": "",
+            },
+            "compile": {
+                "status": "pending",
+                "meta": "Waiting for patch.",
+                "detail": "",
+            },
+            "unit": {
+                "status": "pending",
+                "meta": "Waiting for compilation.",
+                "detail": "",
+            },
+            "verify": {
+                "status": "pending",
+                "meta": "Waiting for tests.",
+                "detail": "",
+            },
+        },
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+
+
+def _update_progress(
+    stage: str,
+    status: str,
+    meta: str,
+    *,
+    detail: str = "",
+    attempt: int | None = None,
+) -> None:
+    path = _PROGRESS_PATH.get()
+    if path is None:
+        return
+    progress = _initial_progress()
+    if path.is_file():
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                progress = loaded
+        except (OSError, json.JSONDecodeError):
+            pass
+    if attempt is not None:
+        progress["attempt"] = attempt
+    progress["current_stage"] = stage
+    progress["latest_event"] = meta
+    stages = progress.setdefault("stages", {})
+    stages[stage] = {"status": status, "meta": meta, "detail": detail}
+    progress["updated_at"] = datetime.now(UTC).isoformat()
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps(progress, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+_repair_call = fix_runtime_module.ManagedRepairAgent.__call__
+_command_call = fix_runtime_module._RuntimeEnvironment.run_isolated_command
+_review_call = fix_runtime_module.ManagedIndependentVerifier.__call__
+
+
+async def _instrumented_repair(
+    self: Any, context: Any, previous_checks: Any
+) -> Any:
+    _update_progress(
+        "patch",
+        "running",
+        f"Repair attempt {context.attempt} is building the patch.",
+        attempt=context.attempt,
+    )
+    outcome = await _repair_call(self, context, previous_checks)
+    changed = bool(
+        subprocess.run(
+            ["/usr/bin/git", "status", "--porcelain=v1"],
+            cwd=self.environment.workspace,
+            check=True,
+            capture_output=True,
+            timeout=30,
+        ).stdout.strip()
+    )
+    status = "passed" if changed else "failed"
+    _update_progress(
+        "patch",
+        status,
+        "Patch submitted." if changed else "No changed files were submitted.",
+        detail=str(outcome.summary or ""),
+        attempt=context.attempt,
+    )
+    return outcome
+
+
+async def _instrumented_command(
+    self: Any, command: Any, *, protect_source: bool = False
+) -> Any:
+    stage = {
+        "quality": "compile",
+        "unit": "unit",
+        "regression": "verify",
+    }.get(str(command.purpose))
+    if command.name in {"Agent command", "Repository setup"}:
+        stage = None
+    if stage is not None:
+        label = {
+            "compile": "Compile or quality check",
+            "unit": "Customer unit tests",
+            "verify": "Regression validation",
+        }[stage]
+        progress_path = _PROGRESS_PATH.get()
+        case_label = progress_path.parent.name if progress_path is not None else "unknown"
+        await self.initialize()
+        telemetry_root = _telemetry_root(self.sandbox_workspace)
+        await self.session.exec(
+            "mkdir",
+            "-p",
+            str(telemetry_root),
+            shell=False,
+            timeout=30,
+        )
+        await self.session.write(
+            telemetry_root / "case",
+            io.BytesIO(case_label.encode()),
+        )
+        await self.session.write(
+            telemetry_root / "stage",
+            io.BytesIO(stage.encode()),
+        )
+        log_path = str(telemetry_root / f"{stage}.log")
+        _update_progress(
+            stage,
+            "running",
+            f"{label} is running.",
+            detail=f"{command.name}: {' '.join(command.argv)}",
+        )
+        wrapped_command = command.model_copy(
+            update={
+                "argv": [
+                    "bash",
+                    "-o",
+                    "pipefail",
+                    "-c",
+                    'log=$1; shift; : > "$log"; "$@" 2>&1 | tee -a "$log"',
+                    "strix-live-log",
+                    log_path,
+                    *command.argv,
+                ]
+            }
+        )
+    else:
+        wrapped_command = command
+    result = await _command_call(
+        self, wrapped_command, protect_source=protect_source
+    )
+    if stage is not None:
+        result = result.model_copy(update={"argv": command.argv})
+    if stage is not None:
+        result_status = getattr(result.status, "value", str(result.status))
+        passed = result_status == "passed" and result.exit_code == 0
+        if stage == "verify" and passed:
+            status = "pending"
+            meta = "Regression validation passed; waiting for independent review."
+        else:
+            status = "passed" if passed else "failed"
+            meta = f"{command.name} {'passed' if passed else 'failed'}."
+        _update_progress(
+            stage,
+            status,
+            meta,
+            detail=f"Exit code: {result.exit_code}",
+        )
+    return result
+
+
+async def _instrumented_review(
+    self: Any, context: Any, checks: Any
+) -> Any:
+    _update_progress(
+        "verify",
+        "running",
+        "The independent reviewer is verifying the fix.",
+    )
+    result = await _review_call(self, context, checks)
+    concerns = list(result.concerns or [])
+    blocking = any(
+        getattr(concern, "kind", "") in {"repair_needed", "customer_prerequisite"}
+        for concern in concerns
+    )
+    passed = (
+        result.security_invariant_closed
+        and result.regression_test_valid
+        and result.unit_test_coverage_valid
+        and not blocking
+    )
+    _update_progress(
+        "verify",
+        "passed" if passed else "failed",
+        "Independent review passed." if passed else "Independent review found a required concern.",
+        detail=str(result.summary or ""),
+    )
+    return result
+
+
+fix_runtime_module.ManagedRepairAgent.__call__ = _instrumented_repair
+fix_runtime_module._RuntimeEnvironment.run_isolated_command = _instrumented_command
+fix_runtime_module.ManagedIndependentVerifier.__call__ = _instrumented_review
 
 
 def _parse_args() -> argparse.Namespace:
@@ -357,6 +588,9 @@ async def _run_case(
         "runtime_identity": runtime_identity,
     }
 
+    progress_path = case_output / "progress.json"
+    _write_json(progress_path, _initial_progress())
+    progress_token = _PROGRESS_PATH.set(progress_path)
     try:
         result = await run_isolated_fix_preparation(
             request,
@@ -396,6 +630,8 @@ async def _run_case(
             "message": str(error),
             "traceback": traceback.format_exc(),
         }
+    finally:
+        _PROGRESS_PATH.reset(progress_token)
 
     try:
         _write_diff(workspace, case_output / "prepared-fix.patch")
