@@ -23,11 +23,13 @@ Set these environment variables when the checkouts do not use the original local
 
 ```bash
 export STRIX_BENCHMARK_SOURCE=/path/to/pr-fix-eval
+export STRIX_BENCHMARK_OUTPUT=/path/to/independent-run
 export STRIX_OSS_ROOT=/path/to/strix
 export STRIX_PRO_ROOT=/path/to/strix-pro
 ```
 
-`run_verified_fixes.py` currently writes replay workspaces and results under:
+Without `STRIX_BENCHMARK_OUTPUT`, `run_verified_fixes.py` writes replay
+workspaces and results under:
 
 ```text
 /home/ubuntu/verified-fix-benchmark/replay
@@ -54,6 +56,25 @@ The replay supports:
 --preflight
 --no-network
 ```
+
+The runner accepts any non-empty frozen cohort and validates `--from` and
+`--to` against its actual size.
+
+## Fresh deterministic slice
+
+Create a severity-stratified 15-case slice that excludes the original first 15
+cases:
+
+```bash
+python PR_FIXES/select_fresh_slice.py \
+  --source /home/ubuntu/pr-fix-eval \
+  --output /home/ubuntu/pr-fix-eval-contract-v4-fresh-15 \
+  --seed contract-v4-fresh-slice-2026-09-29
+```
+
+The selector uses explicit severity quotas, ranks eligible cases by a seed-bound
+SHA-256 score, and prefers distinct repositories within each severity. It
+writes the exact mapping and source identities to `selection-manifest.json`.
 
 ## Grading
 

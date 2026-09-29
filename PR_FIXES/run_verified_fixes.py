@@ -28,7 +28,11 @@ OSS_ROOT = Path(
 PRO_ROOT = Path(
     os.environ.get("STRIX_PRO_ROOT", "/home/ubuntu/worktrees/strix-pro-repair-loop")
 ).resolve()
-REPLAY_ROOT = Path("/home/ubuntu/verified-fix-benchmark/replay")
+REPLAY_ROOT = Path(
+    os.environ.get(
+        "STRIX_BENCHMARK_OUTPUT", "/home/ubuntu/verified-fix-benchmark/replay"
+    )
+)
 CASE_ROOT = REPLAY_ROOT / "cases"
 RESULT_ROOT = REPLAY_ROOT / "results"
 HISTORICAL_BASELINE_CORRECT = 66
@@ -90,8 +94,8 @@ def _parse_args() -> argparse.Namespace:
 
 def _load_cohort() -> list[dict[str, Any]]:
     payload = json.loads((EVAL_ROOT / "cohort.json").read_text(encoding="utf-8"))
-    if not isinstance(payload, list) or len(payload) != 100:
-        raise RuntimeError("Expected the frozen 100-case cohort.")
+    if not isinstance(payload, list) or not payload:
+        raise RuntimeError("Expected a non-empty frozen cohort.")
     return payload
 
 
@@ -236,7 +240,9 @@ def _build_request(
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def _artifact_validation(  # noqa: PLR0911
@@ -270,7 +276,13 @@ def _artifact_validation(  # noqa: PLR0911
                     }
             if "changes.patch" not in names:
                 return {"valid": False, "reason": "patch_missing"}
-    except (OSError, KeyError, ValueError, zipfile.BadZipFile, json.JSONDecodeError) as error:
+    except (
+        OSError,
+        KeyError,
+        ValueError,
+        zipfile.BadZipFile,
+        json.JSONDecodeError,
+    ) as error:
         return {"valid": False, "reason": f"{type(error).__name__}: {error}"}
     return {"valid": True, "reason": None}
 
@@ -368,7 +380,9 @@ async def _run_case(
             record["draft_application"] = "not_applied"
         else:
             record["draft_application"] = "applied"
-        record["artifact_validation"] = _artifact_validation(artifact_path, result_payload)
+        record["artifact_validation"] = _artifact_validation(
+            artifact_path, result_payload
+        )
         record["automatic_pr_eligible"] = (
             result.state is PreparationState.READY
             and bool(result.final_file_manifest)
@@ -405,11 +419,11 @@ async def _run_case(
 
 async def _main() -> None:
     args = _parse_args()
-    if not 1 <= args.start <= args.end <= 100:
-        raise SystemExit("--from and --to must select cases within 1..100")
+    cohort = _load_cohort()
+    if not 1 <= args.start <= args.end <= len(cohort):
+        raise SystemExit(f"--from and --to must select cases within 1..{len(cohort)}")
     if args.concurrency < 1:
         raise SystemExit("--concurrency must be positive")
-    cohort = _load_cohort()
     runtime_identity = _runtime_identity()
     _write_json(RESULT_ROOT / "runtime-identity.json", runtime_identity)
     if args.preflight:
@@ -443,7 +457,9 @@ async def _main() -> None:
             for result in results
             if result.get("result", {}).get("final_file_manifest")
         ),
-        "runtime_exceptions": sum(bool(result.get("runtime_exception")) for result in results),
+        "runtime_exceptions": sum(
+            bool(result.get("runtime_exception")) for result in results
+        ),
         "runtime_identity": runtime_identity,
         "historical_baseline_correct": HISTORICAL_BASELINE_CORRECT,
     }
