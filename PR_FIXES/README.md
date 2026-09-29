@@ -1,0 +1,77 @@
+# PR Fix Evaluation Harness
+
+This directory preserves the verified-fix replay and independent grading scripts from STR-815.
+
+## Scripts
+
+- `run_verified_fixes.py` replays the frozen 100-case PR-review cohort through the OSS and Strix Pro fix-preparation runtime.
+- `grade_workflow.py` runs the final five-group review for the timed 15-case gate and reconciles the results.
+- `grade_15_case_gate_workflow.py` runs the earlier three-group 15-case grading workflow.
+- `grade_verified_fixes_workflow.py` runs the 100-case grading workflow.
+
+## Required local data
+
+The scripts expect a frozen cohort directory with:
+
+```text
+cohort.json
+cases/NN/source
+archives/<repository>__<head_sha>.tar.gz
+```
+
+Set these environment variables when the checkouts do not use the original local paths:
+
+```bash
+export STRIX_BENCHMARK_SOURCE=/path/to/pr-fix-eval
+export STRIX_OSS_ROOT=/path/to/strix
+export STRIX_PRO_ROOT=/path/to/strix-pro
+```
+
+`run_verified_fixes.py` currently writes replay workspaces and results under:
+
+```text
+/home/ubuntu/verified-fix-benchmark/replay
+```
+
+The grading workflows use the same preserved local paths because they were executed as shared-VM dynamic workflows.
+
+## Example replay
+
+```bash
+python PR_FIXES/run_verified_fixes.py --preflight
+python PR_FIXES/run_verified_fixes.py --from 1 --to 15 --concurrency 1 --force
+```
+
+The replay supports:
+
+```text
+--from
+--to
+--concurrency
+--force
+--keep-workspaces
+--smoke
+--preflight
+--no-network
+```
+
+## Grading
+
+The grading files are dynamic workflow scripts.
+Run them with Devin's dynamic workflow runner so the injected `agent`, `register_workflow`, and `log` functions are available.
+
+The final 15-case review used:
+
+```text
+grade_workflow.py
+```
+
+It grades patch correctness separately from controller eligibility.
+
+## Historical baseline note
+
+Some preserved scripts use `historical_baseline_correct`.
+That value is an aggregate result from an earlier benchmark run.
+It is not a later maintainer fix and is not repository ground truth.
+
+The original benchmark did not retrieve a later fixed commit for candidate comparison.
