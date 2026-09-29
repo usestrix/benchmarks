@@ -347,8 +347,8 @@ async def _instrumented_command(
             io.BytesIO(stage.encode()),
         )
         log_path = str(telemetry_root / f"{stage}.log")
-        workspace = getattr(self, "workspace", None)
-        if isinstance(workspace, Path):
+        workspace = Path(self.workspace)
+        if workspace.is_dir():
             changed = bool(
                 subprocess.run(
                     ["/usr/bin/git", "status", "--porcelain=v1"],

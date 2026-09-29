@@ -132,6 +132,14 @@ async def test_instrumented_command_writes_only_outside_source(
 
         def __init__(self) -> None:
             self.session = Session()
+            self.workspace = tmp_path / "source"
+            self.workspace.mkdir()
+            subprocess.run(
+                ["/usr/bin/git", "init", "-q"],
+                cwd=self.workspace,
+                check=True,
+            )
+            (self.workspace / "change.py").write_text("changed = True\n")
 
         async def initialize(self) -> None:
             return
