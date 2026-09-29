@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -66,6 +67,17 @@ def test_dashboard_telemetry_does_not_change_source_fingerprint(
 
     assert telemetry_root == source.parent / ".strix-benchmark"
     assert _fingerprint(source) == before
+
+
+def test_build_request_uses_agent_review_limits() -> None:
+    case = json.loads(
+        (runner.EVAL_ROOT / "cohort.json").read_text(encoding="utf-8")
+    )[0]
+
+    request = runner._build_request(case, "0" * 64, network_allowed=True)
+
+    assert request.max_agent_turns == 500
+    assert request.timeout_seconds == 7200
 
 
 @pytest.mark.asyncio
@@ -139,3 +151,45 @@ async def test_instrumented_command_writes_only_outside_source(
         Path("/workspace/.strix-benchmark/stage"),
     ]
     assert wrapped[0].argv[6] == "/workspace/.strix-benchmark/unit.log"
+
+
+@pytest.mark.asyncio
+async def test_instrumented_command_ignores_exploratory_commands(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    progress_path = tmp_path / "03" / "progress.json"
+    progress_path.parent.mkdir()
+    runner._write_json(progress_path, runner._initial_progress())
+    progress_token = runner._PROGRESS_PATH.set(progress_path)
+
+    class Runtime:
+        sandbox_workspace = "/workspace/source"
+
+    received: list[CommandSpec] = []
+
+    async def command_call(
+        _runtime: Runtime,
+        command: CommandSpec,
+        *,
+        protect_source: bool = False,
+    ) -> Any:
+        assert not protect_source
+        received.append(command)
+        return SimpleNamespace(status=CheckStatus.PASSED, exit_code=0)
+
+    monkeypatch.setattr(runner, "_command_call", command_call)
+    command = CommandSpec(
+        name="Inspect package metadata",
+        argv=["cat", "package.json"],
+        purpose="quality",
+        required=False,
+    )
+    try:
+        await runner._instrumented_command(Runtime(), command)
+    finally:
+        runner._PROGRESS_PATH.reset(progress_token)
+
+    assert received == [command]
+    progress = json.loads(progress_path.read_text(encoding="utf-8"))
+    assert progress["current_stage"] == "patch"

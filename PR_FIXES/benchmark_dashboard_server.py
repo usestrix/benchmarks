@@ -672,8 +672,10 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
             repair_raw_status = str(repair.get("status") or "unknown")
             empty_completion = (
                 repair_raw_status == "complete"
-                and changed_count == 0
-                and result.get("stop_reason") == "The repair did not change repository source."
+                and any(
+                    "No changed files were found" in str(gap)
+                    for gap in repair.get("gaps") or []
+                )
             )
             if empty_completion:
                 repair_status = "failed"
@@ -692,13 +694,20 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(checks, list):
                 checks = []
             compile_checks = [
-                check for check in checks if check.get("purpose") == "quality"
+                check
+                for check in checks
+                if check.get("purpose") == "quality" and check.get("required") is True
             ]
             unit_checks = [
-                check for check in checks if check.get("purpose") == "unit"
+                check
+                for check in checks
+                if check.get("purpose") == "unit" and check.get("required") is True
             ]
             regression_checks = [
-                check for check in checks if check.get("purpose") == "regression"
+                check
+                for check in checks
+                if check.get("purpose") == "regression"
+                and check.get("required") is True
             ]
             compile_status, compile_meta = _stage_check_summary(
                 compile_checks, "compile checks"
@@ -771,7 +780,7 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
                     },
                     "compile": {
                         "title": "2. Compile fix",
-                        "agent": "Controller",
+                        "agent": "Repair agent",
                         "status": compile_status,
                         "meta": compile_meta,
                         "detail": _truncate(
@@ -783,7 +792,7 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
                     },
                     "unit": {
                         "title": "3. Run unit tests",
-                        "agent": "Controller",
+                        "agent": "Repair agent",
                         "status": unit_status,
                         "meta": unit_meta,
                         "detail": _truncate(
@@ -860,14 +869,14 @@ def _live_flow(
                 },
                 "compile": {
                     "title": "2. Compile fix",
-                    "agent": "Controller",
+                    "agent": "Repair agent",
                     "status": compile_status,
                     "meta": compile_meta,
                     "detail": "",
                 },
                 "unit": {
                     "title": "3. Run unit tests",
-                    "agent": "Controller",
+                    "agent": "Repair agent",
                     "status": unit_status,
                     "meta": unit_meta,
                     "detail": "",
@@ -898,8 +907,8 @@ def _recorded_live_flow(
     live_log = runtime_snapshot.get("log", "")
     definitions = (
         ("patch", "1. Build patch", "Repair agent"),
-        ("compile", "2. Compile fix", "Controller"),
-        ("unit", "3. Run unit tests", "Controller"),
+        ("compile", "2. Compile fix", "Repair agent"),
+        ("unit", "3. Run unit tests", "Repair agent"),
         ("verify", "4. Verify fix worked", "Reviewer agent"),
     )
     nodes: dict[str, dict[str, Any]] = {}

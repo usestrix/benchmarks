@@ -25,10 +25,13 @@ from typing import Any
 
 EVAL_ROOT = Path(os.environ.get("STRIX_BENCHMARK_SOURCE", "/home/ubuntu/pr-fix-eval"))
 OSS_ROOT = Path(
-    os.environ.get("STRIX_OSS_ROOT", "/home/ubuntu/worktrees/strix-fix-controller")
+    os.environ.get("STRIX_OSS_ROOT", "/home/ubuntu/worktrees/benchmark-rerun-v4-oss")
 ).resolve()
 PRO_ROOT = Path(
-    os.environ.get("STRIX_PRO_ROOT", "/home/ubuntu/worktrees/strix-pro-repair-loop")
+    os.environ.get("STRIX_PRO_ROOT", "/home/ubuntu/worktrees/benchmark-rerun-v4-pro")
+).resolve()
+APP_ROOT = Path(
+    os.environ.get("STRIX_APP_ROOT", "/home/ubuntu/worktrees/benchmark-rerun-v4-app")
 ).resolve()
 REPLAY_ROOT = Path(
     os.environ.get(
@@ -42,6 +45,7 @@ HISTORICAL_BASELINE_CORRECT = 66
 for runtime_root, marker in (
     (OSS_ROOT, "strix/fix/prepare.py"),
     (PRO_ROOT, "strix_pro/fix_runtime.py"),
+    (APP_ROOT, "src/lib/fix-preparation/contracts.ts"),
 ):
     if not (runtime_root / marker).is_file():
         raise RuntimeError(f"Selected runtime root is invalid: {runtime_root}")
@@ -115,6 +119,7 @@ def _update_progress(
     *,
     detail: str = "",
     attempt: int | None = None,
+    reset_stages: bool = False,
 ) -> None:
     path = _PROGRESS_PATH.get()
     if path is None:
@@ -129,6 +134,8 @@ def _update_progress(
             pass
     if attempt is not None:
         progress["attempt"] = attempt
+    if reset_stages:
+        progress["stages"] = _initial_progress()["stages"]
     progress["current_stage"] = stage
     progress["latest_event"] = meta
     stages = progress.setdefault("stages", {})
@@ -155,6 +162,7 @@ async def _instrumented_repair(
         "running",
         f"Repair attempt {context.attempt} is building the patch.",
         attempt=context.attempt,
+        reset_stages=True,
     )
     outcome = await _repair_call(self, context, previous_checks)
     changed = bool(
@@ -180,12 +188,16 @@ async def _instrumented_repair(
 async def _instrumented_command(
     self: Any, command: Any, *, protect_source: bool = False
 ) -> Any:
+    purpose = str(command.purpose)
     stage = {
         "quality": "compile",
         "unit": "unit",
         "regression": "verify",
-    }.get(str(command.purpose))
-    if command.name in {"Agent command", "Repository setup"}:
+        "security": "verify",
+    }.get(purpose)
+    if command.name == "Repository setup" or (
+        purpose == "quality" and not command.required
+    ):
         stage = None
     if stage is not None:
         label = {
@@ -213,6 +225,23 @@ async def _instrumented_command(
             io.BytesIO(stage.encode()),
         )
         log_path = str(telemetry_root / f"{stage}.log")
+        workspace = getattr(self, "workspace", None)
+        if isinstance(workspace, Path):
+            changed = bool(
+                subprocess.run(
+                    ["/usr/bin/git", "status", "--porcelain=v1"],
+                    cwd=workspace,
+                    check=True,
+                    capture_output=True,
+                    timeout=30,
+                ).stdout.strip()
+            )
+            if changed:
+                _update_progress(
+                    "patch",
+                    "passed",
+                    "The patch is ready for validation.",
+                )
         _update_progress(
             stage,
             "running",
@@ -273,7 +302,8 @@ async def _instrumented_review(
         for concern in concerns
     )
     passed = (
-        result.security_invariant_closed
+        getattr(result.decision, "value", str(result.decision)) == "verified"
+        and result.security_invariant_closed
         and result.regression_test_valid
         and result.unit_test_coverage_valid
         and not blocking
@@ -297,7 +327,7 @@ def _parse_args() -> argparse.Namespace:
         description="Replay frozen PR-review findings through Strix + Strix Pro."
     )
     parser.add_argument("--from", dest="start", type=int, default=1)
-    parser.add_argument("--to", dest="end", type=int, default=100)
+    parser.add_argument("--to", dest="end", type=int)
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
@@ -394,6 +424,7 @@ def _runtime_identity() -> dict[str, Any]:
             "version": pro_version,
             "module": str(Path(sys.modules["strix_pro"].__file__).resolve()),
         },
+        "app": _git_identity(APP_ROOT),
     }
 
 
@@ -462,8 +493,8 @@ def _build_request(
         finding_id=str(case["id"]),
         repository_id=str(case["repository_full_name"]),
         candidate=candidate,
-        max_repair_attempts=2,
-        timeout_seconds=1800,
+        max_agent_turns=500,
+        timeout_seconds=7200,
         network_allowed=network_allowed,
         credentials_allowed=[],
     )
@@ -507,6 +538,11 @@ def _artifact_validation(  # noqa: PLR0911
                     }
             if "changes.patch" not in names:
                 return {"valid": False, "reason": "patch_missing"}
+            if "execution.json" not in names:
+                return {"valid": False, "reason": "execution_history_missing"}
+            execution = json.loads(archive.read("execution.json"))
+            if not isinstance(execution, list):
+                return {"valid": False, "reason": "execution_history_invalid"}
     except (
         OSError,
         KeyError,
@@ -656,6 +692,7 @@ async def _run_case(
 async def _main() -> None:
     args = _parse_args()
     cohort = _load_cohort()
+    args.end = args.end or len(cohort)
     if not 1 <= args.start <= args.end <= len(cohort):
         raise SystemExit(f"--from and --to must select cases within 1..{len(cohort)}")
     if args.concurrency < 1:

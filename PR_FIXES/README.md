@@ -4,7 +4,7 @@ This directory preserves the verified-fix replay and independent grading scripts
 
 ## Scripts
 
-- `run_verified_fixes.py` replays the frozen 100-case PR-review cohort through the OSS and Strix Pro fix-preparation runtime.
+- `run_verified_fixes.py` replays the frozen PR-review cohort through the pinned OSS and Strix Pro runtime and records the matching app result-contract identity.
 - `benchmark_dashboard_server.py` serves live four-stage progress, command output, and timestamped events from an active replay.
 - `grade_workflow.py` runs the final five-group review for the timed 15-case gate and reconciles the results.
 - `grade_15_case_gate_workflow.py` runs the earlier three-group 15-case grading workflow.
@@ -27,6 +27,7 @@ export STRIX_BENCHMARK_SOURCE=/path/to/pr-fix-eval
 export STRIX_BENCHMARK_OUTPUT=/path/to/independent-run
 export STRIX_OSS_ROOT=/path/to/strix
 export STRIX_PRO_ROOT=/path/to/strix-pro
+export STRIX_APP_ROOT=/path/to/strix-app
 ```
 
 Without `STRIX_BENCHMARK_OUTPUT`, `run_verified_fixes.py` writes replay
@@ -61,6 +62,10 @@ The replay supports:
 The runner accepts any non-empty frozen cohort and validates `--from` and
 `--to` against its actual size.
 
+Agent-review requests use 500 turns per agent and a 7,200-second job deadline.
+Results are expected to use `validation_mode: "agent_review"` and artifacts must
+include the complete recorded command history in `execution.json`.
+
 ## Live dashboard
 
 Start the dashboard against the replay output directory:
@@ -74,6 +79,7 @@ python PR_FIXES/benchmark_dashboard_server.py
 ```
 
 The dashboard displays Build patch, Compile fix, Run unit tests, and Verify fix.
+Repair owns the first three stages; independent review owns the fourth.
 The runner writes live sandbox markers and command logs to
 `/workspace/.strix-benchmark`, outside the protected repository at
 `/workspace/source`.
