@@ -120,7 +120,13 @@ async def test_instrumented_command_writes_only_outside_source(
         def __init__(self) -> None:
             self.writes: list[Path] = []
 
-        async def exec(self, *_args: str, **_kwargs: Any) -> Any:
+        async def exec(self, *args: str, **_kwargs: Any) -> Any:
+            if args and args[0] == "git":
+                return SimpleNamespace(
+                    exit_code=0,
+                    stdout=b" M change.py\n",
+                    stderr=b"",
+                )
             return SimpleNamespace(exit_code=0, stdout=b"", stderr=b"")
 
         async def write(self, path: Path, content: io.BytesIO) -> None:
@@ -134,12 +140,6 @@ async def test_instrumented_command_writes_only_outside_source(
             self.session = Session()
             self.workspace = tmp_path / "source"
             self.workspace.mkdir()
-            subprocess.run(
-                ["/usr/bin/git", "init", "-q"],
-                cwd=self.workspace,
-                check=True,
-            )
-            (self.workspace / "change.py").write_text("changed = True\n")
 
         async def initialize(self) -> None:
             return
@@ -185,6 +185,8 @@ async def test_instrumented_command_writes_only_outside_source(
         Path("/workspace/.strix-benchmark/stage"),
     ]
     assert wrapped[0].argv[6] == "/workspace/.strix-benchmark/unit.log"
+    progress = json.loads(progress_path.read_text())
+    assert progress["stages"]["patch"]["status"] == "passed"
 
 
 @pytest.mark.asyncio

@@ -347,23 +347,21 @@ async def _instrumented_command(
             io.BytesIO(stage.encode()),
         )
         log_path = str(telemetry_root / f"{stage}.log")
-        workspace = Path(self.workspace)
-        if workspace.is_dir():
-            changed = bool(
-                subprocess.run(
-                    ["/usr/bin/git", "status", "--porcelain=v1"],
-                    cwd=workspace,
-                    check=True,
-                    capture_output=True,
-                    timeout=30,
-                ).stdout.strip()
+        status_result = await self.session.exec(
+            "git",
+            "-C",
+            self.sandbox_workspace,
+            "status",
+            "--porcelain=v1",
+            shell=False,
+            timeout=30,
+        )
+        if not int(status_result.exit_code) and (status_result.stdout or b"").strip():
+            _update_progress(
+                "patch",
+                "passed",
+                "The patch is ready for validation.",
             )
-            if changed:
-                _update_progress(
-                    "patch",
-                    "passed",
-                    "The patch is ready for validation.",
-                )
         _update_progress(
             stage,
             "running",

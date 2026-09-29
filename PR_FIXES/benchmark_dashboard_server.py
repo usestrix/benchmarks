@@ -1067,6 +1067,11 @@ def _recorded_live_flow(
             "detail": recorded.get("detail") or "",
             "log": live_log if key == current_stage == live_stage else "",
         }
+    if nodes["patch"]["status"] == "running" and any(
+        nodes[key]["status"] != "pending" for key in ("compile", "unit", "verify")
+    ):
+        nodes["patch"]["status"] = "passed"
+        nodes["patch"]["meta"] = "The patch is ready for validation."
     return {
         "attempts": [
             {
