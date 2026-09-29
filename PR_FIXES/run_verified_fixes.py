@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay frozen PR-review findings through the Strix verified-fix runtime."""
+"""Replay frozen security findings through the Strix verified-fix runtime."""
 
 from __future__ import annotations
 
@@ -56,8 +56,11 @@ sys.path.insert(0, str(PRO_ROOT))
 from strix.config import load_settings  # noqa: E402
 from strix.config.models import configure_sdk_model_defaults  # noqa: E402
 from strix.fix import (  # noqa: E402
+    FindingContext,
+    FixCandidateV1,
     FixPreparationRequestV1,
     PreparationState,
+    ReproductionSpec,
     SourceIdentity,
     SourceIdentityKind,
     candidate_from_legacy_report,
@@ -463,7 +466,7 @@ fix_runtime_module._ToolTrace.on_tool_end = _instrumented_tool_end
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Replay frozen PR-review findings through Strix + Strix Pro."
+        description="Replay frozen security findings through Strix + Strix Pro."
     )
     parser.add_argument("--from", dest="start", type=int, default=1)
     parser.add_argument("--to", dest="end", type=int)
@@ -499,6 +502,72 @@ def _load_cohort() -> list[dict[str, Any]]:
     return payload
 
 
+def _validate_cohort(cohort: list[dict[str, Any]]) -> dict[str, Any]:
+    manifest_path = EVAL_ROOT / "selection-manifest.json"
+    manifest = (
+        json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest_path.is_file()
+        else {}
+    )
+    expected_count = int(manifest.get("case_count", len(cohort)))
+    if len(cohort) != expected_count:
+        raise RuntimeError(
+            f"Cohort contains {len(cohort)} cases; manifest expects {expected_count}."
+        )
+    expected_cohort_digest = manifest.get("cohort_sha256")
+    cohort_digest = _sha256_file(EVAL_ROOT / "cohort.json")
+    if expected_cohort_digest and cohort_digest != expected_cohort_digest:
+        raise RuntimeError(
+            "Frozen cohort checksum does not match selection-manifest.json."
+        )
+    expected_source_digest = manifest.get("source", {}).get("source_tree_sha256")
+
+    cases: list[dict[str, Any]] = []
+    for case_number, case in enumerate(cohort, start=1):
+        label = _case_label(case_number)
+        source = EVAL_ROOT / "cases" / label / "source"
+        if not source.is_dir():
+            raise FileNotFoundError(f"Frozen source is missing: {source}")
+        source_digest = _sha256_tree(source)
+        if expected_source_digest and source_digest != expected_source_digest:
+            raise RuntimeError(
+                f"Frozen source checksum does not match for case {label}."
+            )
+        archive = _archive_path(case)
+        archive_digest = _sha256_file(archive)
+        expected_archive_digest = case.get("source_archive_sha256")
+        if (
+            expected_archive_digest
+            and archive_digest != expected_archive_digest
+        ):
+            raise RuntimeError(
+                f"Frozen archive checksum does not match for case {label}."
+            )
+        request = _build_request(case, archive_digest, network_allowed=False)
+        cases.append(
+            {
+                "case": case_number,
+                "finding_id": case["id"],
+                "scan_id": case.get("scan_id") or case.get("pr_review_id"),
+                "repository_full_name": case["repository_full_name"],
+                "head_sha": case["head_sha"],
+                "source_tree_sha256": source_digest,
+                "archive": archive.name,
+                "archive_sha256": archive_digest,
+                "candidate_digest": request.candidate.digest(),
+                "finding_location_count": len(request.candidate.finding_locations),
+            }
+        )
+    return {
+        "case_count": len(cases),
+        "cohort_sha256": cohort_digest,
+        "selection_manifest_sha256": (
+            _sha256_file(manifest_path) if manifest_path.is_file() else None
+        ),
+        "cases": cases,
+    }
+
+
 def _case_label(case_number: int) -> str:
     return f"{case_number:02d}"
 
@@ -517,6 +586,27 @@ def _sha256_file(path: Path) -> str:
         while chunk := source.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _sha256_tree(path: Path) -> str:
+    archive = subprocess.run(  # noqa: S603
+        [
+            "tar",
+            "--sort=name",
+            "--mtime=@0",
+            "--owner=0",
+            "--group=0",
+            "--numeric-owner",
+            "-cf",
+            "-",
+            ".",
+        ],
+        cwd=path,
+        check=True,
+        capture_output=True,
+        timeout=30,
+    ).stdout
+    return hashlib.sha256(archive).hexdigest()
 
 
 def _git_identity(repository: Path) -> dict[str, Any]:
@@ -617,18 +707,43 @@ def _build_request(
     )
     candidate = candidate_from_legacy_report(
         {
-            "technical_analysis": case.get("description"),
+            "title": case.get("title"),
+            "description": case.get("description"),
+            "technical_analysis": case.get("technical_analysis")
+            or case.get("description"),
             "remediation_steps": case.get("remediation_steps"),
             "code_locations": case.get("code_locations"),
             "evidence": case.get("evidence"),
         },
         source_identity=source_identity,
     )
+    if candidate is None and case.get("scan_id"):
+        technical_analysis = str(
+            case.get("technical_analysis") or case.get("description") or ""
+        ).strip()
+        remediation = str(case.get("remediation_steps") or "").strip()
+        evidence = str(case.get("evidence") or "").strip()
+        candidate = FixCandidateV1(
+            source_identity=source_identity,
+            security_invariant=remediation
+            or technical_analysis
+            or "Resolve the reported security finding without changing legitimate behavior.",
+            reproduction=(
+                ReproductionSpec(instructions=evidence) if evidence else None
+            ),
+            finding=FindingContext(
+                title=str(case.get("title") or ""),
+                description=str(case.get("description") or technical_analysis),
+                evidence=evidence,
+                remediation=remediation,
+            ),
+            known_gaps=["The scan finding has no structured source location."],
+        )
     if candidate is None:
         raise RuntimeError("The frozen finding did not produce a fix candidate.")
     return FixPreparationRequestV1(
         organization_id=case.get("organization_id"),
-        scan_id=str(case["pr_review_id"]),
+        scan_id=str(case.get("scan_id") or case["pr_review_id"]),
         finding_id=str(case["id"]),
         repository_id=str(case["repository_full_name"]),
         candidate=candidate,
@@ -735,9 +850,10 @@ async def _run_case(
     record: dict[str, Any] = {
         "case": case_number,
         "finding_id": case["id"],
-        "pr_review_id": case["pr_review_id"],
+        "scan_id": case.get("scan_id"),
+        "pr_review_id": case.get("pr_review_id"),
         "repository_full_name": case["repository_full_name"],
-        "pr_number": case["pr_number"],
+        "pr_number": case.get("pr_number"),
         "original_head_sha": case["head_sha"],
         "source_archive": archive_path.name,
         "source_archive_sha256": archive_digest,
@@ -837,6 +953,8 @@ async def _main() -> None:
     if args.concurrency < 1:
         raise SystemExit("--concurrency must be positive")
     runtime_identity = _runtime_identity()
+    cohort_validation = _validate_cohort(cohort)
+    runtime_identity["cohort_validation"] = cohort_validation
     _write_json(RESULT_ROOT / "runtime-identity.json", runtime_identity)
     if args.preflight:
         print(json.dumps(runtime_identity, indent=2, sort_keys=True))  # noqa: T201

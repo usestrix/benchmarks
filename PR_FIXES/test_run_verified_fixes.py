@@ -80,6 +80,26 @@ def test_build_request_uses_agent_review_limits() -> None:
     assert request.timeout_seconds == 7200
 
 
+def test_build_request_accepts_scan_finding_metadata() -> None:
+    case = {
+        "id": "finding-id",
+        "scan_id": "scan-id",
+        "organization_id": "organization-id",
+        "repository_full_name": "usestrix/otp-mcp",
+        "description": "Short finding description.",
+        "technical_analysis": "Detailed root-cause analysis.",
+        "remediation_steps": "Apply a focused fix.",
+        "code_locations": None,
+        "evidence": "Reproduction evidence.",
+    }
+
+    request = runner._build_request(case, "0" * 64, network_allowed=True)
+
+    assert request.scan_id == "scan-id"
+    assert request.finding_id == "finding-id"
+    assert request.repository_id == "usestrix/otp-mcp"
+
+
 def test_agent_trace_is_written_beside_case_progress(tmp_path: Path) -> None:
     progress_path = tmp_path / "03" / "progress.json"
     progress_path.parent.mkdir()
