@@ -131,7 +131,10 @@ def test_validate_cohort_accepts_distinct_scan_sources(
                 "id": finding_id,
                 "scan_id": scan_id,
                 "organization_id": "organization-id",
+                "cohort_category": "live_test_with_repositories",
+                "engagement_type": "live_test",
                 "repository_full_name": repository,
+                "repository_url": f"https://github.com/{repository}",
                 "head_sha": head_sha,
                 "title": f"Finding {case_number}",
                 "description": "Finding description.",
@@ -151,6 +154,9 @@ def test_validate_cohort_accepts_distinct_scan_sources(
             {
                 "finding_id": finding_id,
                 "scan_id": scan_id,
+                "cohort_category": "live_test_with_repositories",
+                "engagement_type": "live_test",
+                "repositories_attached": True,
                 "repository_full_name": repository,
                 "head_sha": head_sha,
                 "archive_sha256": archive_digest,
@@ -166,6 +172,7 @@ def test_validate_cohort_accepts_distinct_scan_sources(
                 "source_kind": "strix_scans",
                 "case_count": 2,
                 "distinct_scan_count": 2,
+                "scan_mix": {"live_test_with_repositories": 2},
                 "cohort_sha256": runner._sha256_file(cohort_path),
                 "cases": manifest_cases,
             }
@@ -178,6 +185,7 @@ def test_validate_cohort_accepts_distinct_scan_sources(
 
     assert validation["case_count"] == 2
     assert validation["distinct_scan_count"] == 2
+    assert validation["scan_mix"] == {"live_test_with_repositories": 2}
 
 
 def test_agent_trace_is_written_beside_case_progress(tmp_path: Path) -> None:

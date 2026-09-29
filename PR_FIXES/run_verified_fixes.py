@@ -16,6 +16,7 @@ import sys
 import time
 import traceback
 import zipfile
+from collections import Counter
 from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
@@ -541,18 +542,50 @@ def _validate_cohort(cohort: list[dict[str, Any]]) -> dict[str, Any]:
             raise RuntimeError("Every scan cohort case must include scan_id.")
         if any(case.get("pr_review_id") for case in cohort):
             raise RuntimeError("Scan cohort cases must not include pr_review_id.")
+    category_counts = Counter(
+        str(case["cohort_category"])
+        for case in cohort
+        if case.get("cohort_category")
+    )
+    expected_category_counts = manifest.get("scan_mix")
+    if expected_category_counts is not None and dict(category_counts) != {
+        str(category): int(count)
+        for category, count in expected_category_counts.items()
+    }:
+        raise RuntimeError(
+            "Frozen cohort scan mix does not match selection-manifest.json."
+        )
 
     cases: list[dict[str, Any]] = []
     for case_number, case in enumerate(cohort, start=1):
         label = _case_label(case_number)
         manifest_case = manifest_cases.get(str(case["id"]), {})
-        for field in ("scan_id", "repository_full_name", "head_sha"):
+        for field in (
+            "scan_id",
+            "cohort_category",
+            "engagement_type",
+            "repository_full_name",
+            "head_sha",
+        ):
             expected = manifest_case.get(field)
             if expected is not None and str(case.get(field)) != str(expected):
                 raise RuntimeError(
                     f"Frozen case {label} {field} does not match "
                     "selection-manifest.json."
                 )
+        if (
+            case.get("cohort_category") == "live_test_with_repositories"
+            and (
+                case.get("engagement_type") != "live_test"
+                or not case.get("repository_full_name")
+                or not case.get("repository_url")
+                or manifest_case.get("repositories_attached") is not True
+            )
+        ):
+            raise RuntimeError(
+                f"Frozen live-test case {label} must have an attached "
+                "repository."
+            )
         source = EVAL_ROOT / "cases" / label / "source"
         if not source.is_dir():
             raise FileNotFoundError(f"Frozen source is missing: {source}")
@@ -595,6 +628,7 @@ def _validate_cohort(cohort: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "case_count": len(cases),
         "distinct_scan_count": len(set(scan_ids)),
+        "scan_mix": dict(sorted(category_counts.items())),
         "cohort_sha256": cohort_digest,
         "selection_manifest_sha256": (
             _sha256_file(manifest_path) if manifest_path.is_file() else None
