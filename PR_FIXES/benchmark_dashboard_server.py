@@ -800,6 +800,7 @@ def _stage_check_summary(
 
 def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
     result = record.get("result") if isinstance(record.get("result"), dict) else {}
+    agent_review = result.get("validation_mode") == "agent_review"
     changed_files = result.get("changed_files") or []
     changed_count = len(changed_files) if isinstance(changed_files, list) else 0
     attempts = result.get("attempt_history") or record.get("attempt_history") or []
@@ -875,12 +876,17 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
             )
             decision = str(verifier.get("decision") or "not_reached")
             if decision == "verified":
-                verify_status = (
-                    "passed"
-                    if all(check.get("status") == "passed" for check in regression_checks)
-                    and bool(regression_checks)
-                    else "warning"
-                )
+                if regression_checks:
+                    verify_status = (
+                        "passed"
+                        if all(
+                            check.get("status") == "passed"
+                            for check in regression_checks
+                        )
+                        else "warning"
+                    )
+                else:
+                    verify_status = "passed" if agent_review else "warning"
             elif decision == "rejected":
                 verify_status = "failed"
             else:
@@ -892,16 +898,24 @@ def _flow_graph(record: dict[str, Any]) -> dict[str, Any]:
             regression_passed = sum(
                 check.get("status") == "passed" for check in regression_checks
             )
-            verify_meta = (
-                f"Regression {regression_passed}/{len(regression_checks)} passed"
-                f" · review {decision.replace('_', ' ')}"
-                f" · invariant closed {bool(verifier.get('security_invariant_closed'))}"
-                if verifier
-                else (
+            if verifier and agent_review and not regression_checks:
+                verify_meta = (
+                    f"Native review {decision.replace('_', ' ')}"
+                    f" · invariant closed "
+                    f"{bool(verifier.get('security_invariant_closed'))}"
+                )
+            elif verifier:
+                verify_meta = (
+                    f"Regression {regression_passed}/{len(regression_checks)} passed"
+                    f" · review {decision.replace('_', ' ')}"
+                    f" · invariant closed "
+                    f"{bool(verifier.get('security_invariant_closed'))}"
+                )
+            else:
+                verify_meta = (
                     f"Regression {regression_passed}/{len(regression_checks)} passed"
                     " · reviewer not reached"
                 )
-            )
             verify_detail = (
                 verifier.get("summary")
                 or ((verifier.get("gaps") or [None])[0])
@@ -1065,7 +1079,11 @@ def _recorded_live_flow(
             "status": recorded.get("status") or "pending",
             "meta": recorded.get("meta") or "",
             "detail": recorded.get("detail") or "",
-            "log": live_log if key == current_stage == live_stage else "",
+            "log": (
+                live_log
+                if key == current_stage == live_stage and live_log
+                else recorded.get("log") or ""
+            ),
         }
     if nodes["patch"]["status"] == "running" and any(
         nodes[key]["status"] != "pending" for key in ("compile", "unit", "verify")

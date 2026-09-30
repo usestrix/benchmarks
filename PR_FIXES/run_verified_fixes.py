@@ -7,9 +7,9 @@ import argparse
 import asyncio
 import hashlib
 import importlib.metadata
-import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -99,20 +99,12 @@ def _append_agent_trace(
         "kind": kind,
         "title": title,
         "status": status,
-        "arguments": arguments[-6000:],
-        "result": result[-12000:],
-        "detail": detail[-2000:],
+        "arguments": arguments,
+        "result": result,
+        "detail": detail,
     }
     with trace_path.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(event, sort_keys=True) + "\n")
-
-
-def _telemetry_root(sandbox_workspace: str) -> Path:
-    source_root = Path(sandbox_workspace).resolve()
-    telemetry_root = source_root.parent / ".strix-benchmark"
-    if telemetry_root.is_relative_to(source_root):
-        raise RuntimeError("Benchmark telemetry must stay outside repository source.")
-    return telemetry_root
 
 
 def _initial_progress() -> dict[str, Any]:
@@ -152,6 +144,7 @@ def _update_progress(
     meta: str,
     *,
     detail: str = "",
+    log: str | None = None,
     attempt: int | None = None,
     reset_stages: bool = False,
 ) -> None:
@@ -173,7 +166,13 @@ def _update_progress(
     progress["current_stage"] = stage
     progress["latest_event"] = meta
     stages = progress.setdefault("stages", {})
-    stages[stage] = {"status": status, "meta": meta, "detail": detail}
+    previous = stages.get(stage) if isinstance(stages.get(stage), dict) else {}
+    stages[stage] = {
+        "status": status,
+        "meta": meta,
+        "detail": detail,
+        "log": previous.get("log", "") if log is None else log,
+    }
     progress["updated_at"] = datetime.now(UTC).isoformat()
     temporary = path.with_suffix(".tmp")
     temporary.write_text(
@@ -184,12 +183,65 @@ def _update_progress(
 
 
 _repair_call = fix_runtime_module.ManagedRepairAgent.__call__
-_command_call = fix_runtime_module._RuntimeEnvironment.run_isolated_command
 _review_call = fix_runtime_module.ManagedIndependentVerifier.__call__
-_tool_trace_llm_start = fix_runtime_module._ToolTrace.on_llm_start
-_tool_trace_llm_end = fix_runtime_module._ToolTrace.on_llm_end
-_tool_trace_tool_start = fix_runtime_module._ToolTrace.on_tool_start
-_tool_trace_tool_end = fix_runtime_module._ToolTrace.on_tool_end
+_fix_hooks_llm_start = fix_runtime_module._FixHooks.on_llm_start
+_fix_hooks_llm_end = fix_runtime_module._FixHooks.on_llm_end
+_fix_hooks_tool_start = fix_runtime_module._FixHooks.on_tool_start
+_fix_hooks_tool_end = fix_runtime_module._FixHooks.on_tool_end
+
+
+def _tool_arguments(context: Any) -> str:
+    return str(getattr(context, "tool_arguments", "") or "")
+
+
+def _model_response(response: Any) -> str:
+    try:
+        return json.dumps(response.to_input_items(), ensure_ascii=False, default=str)
+    except (AttributeError, TypeError, ValueError):
+        return str(response)
+
+
+def _command_text(self: Any, context: Any) -> str:
+    try:
+        arguments = json.loads(_tool_arguments(context))
+    except json.JSONDecodeError:
+        return _tool_arguments(context)
+    if getattr(context, "tool_name", "") == "write_stdin":
+        pending = self.environment.pending_commands.get(arguments.get("session_id"), {})
+        return str(pending.get("cmd", ""))
+    return str(arguments.get("cmd", ""))
+
+
+def _command_stage(self: Any, context: Any, agent: Any) -> str | None:
+    if str(getattr(agent, "name", "")).lower().startswith("independent fix reviewer"):
+        return "verify"
+    if getattr(context, "tool_name", "") not in {"exec_command", "write_stdin"}:
+        return None
+    command = _command_text(self, context)
+    if re.search(
+        r"\b(pytest|vitest|jest|phpunit|go test|cargo test|npm (?:run )?test|"
+        r"pnpm (?:run )?test|yarn (?:run )?test|bun test|rspec|mvn test|gradle test)\b",
+        command,
+        re.IGNORECASE,
+    ):
+        return "unit"
+    if re.search(
+        r"\b(tsc|typecheck|type-check|build|lint|mypy|ruff|cargo check|go vet)\b",
+        command,
+        re.IGNORECASE,
+    ):
+        return "compile"
+    return None
+
+
+def _tool_succeeded(result: Any) -> bool | None:
+    text = str(result)
+    match = re.search(r"^Process exited with code (-?\d+)$", text, re.MULTILINE)
+    if match:
+        return int(match.group(1)) == 0
+    if re.search(r"^Process running with session ID \d+$", text, re.MULTILINE):
+        return None
+    return None
 
 
 async def _instrumented_llm_start(
@@ -199,7 +251,7 @@ async def _instrumented_llm_start(
     system_prompt: str | None,
     input_items: Any,
 ) -> None:
-    await _tool_trace_llm_start(
+    await _fix_hooks_llm_start(
         self,
         context,
         agent,
@@ -221,11 +273,12 @@ async def _instrumented_llm_end(
     agent: Any,
     response: Any,
 ) -> None:
-    await _tool_trace_llm_end(self, context, agent, response)
+    await _fix_hooks_llm_end(self, context, agent, response)
     _append_agent_trace(
         actor=str(agent.name),
         kind="model",
         title=f"Model turn {self.turns}",
+        result=_model_response(response),
         detail="The model response was received.",
     )
 
@@ -236,13 +289,26 @@ async def _instrumented_tool_start(
     agent: Any,
     tool: Any,
 ) -> None:
-    await _tool_trace_tool_start(self, context, agent, tool)
+    await _fix_hooks_tool_start(self, context, agent, tool)
+    stage = _command_stage(self, context, agent)
+    if stage is not None:
+        label = {
+            "compile": "Compile or quality check",
+            "unit": "Customer unit or regression tests",
+            "verify": "Independent verification",
+        }[stage]
+        _update_progress(
+            stage,
+            "running",
+            f"{label} is running.",
+            detail=_command_text(self, context),
+        )
     _append_agent_trace(
         actor=str(agent.name),
         kind="tool",
         title=str(getattr(tool, "name", type(tool).__name__)),
         status="running",
-        arguments=str(getattr(context, "tool_arguments", "") or ""),
+        arguments=_tool_arguments(context),
         detail="Tool call started.",
     )
 
@@ -254,12 +320,27 @@ async def _instrumented_tool_end(
     tool: Any,
     result: Any,
 ) -> None:
-    await _tool_trace_tool_end(self, context, agent, tool, result)
+    stage = _command_stage(self, context, agent)
+    command = _command_text(self, context)
+    await _fix_hooks_tool_end(self, context, agent, tool, result)
+    if stage is not None:
+        succeeded = _tool_succeeded(result)
+        _update_progress(
+            stage,
+            "running" if succeeded is None else "passed" if succeeded else "failed",
+            (
+                f"{command or 'Command'} is still running."
+                if succeeded is None
+                else f"{command or 'Command'} {'passed' if succeeded else 'failed'}."
+            ),
+            detail=command,
+            log=str(result)[-12000:],
+        )
     _append_agent_trace(
         actor=str(agent.name),
         kind="tool",
         title=str(getattr(tool, "name", type(tool).__name__)),
-        arguments=str(getattr(context, "tool_arguments", "") or ""),
+        arguments=_tool_arguments(context),
         result=str(result),
         detail="Tool call completed.",
     )
@@ -311,106 +392,6 @@ async def _instrumented_repair(
     return outcome
 
 
-async def _instrumented_command(
-    self: Any, command: Any, *, protect_source: bool = False
-) -> Any:
-    purpose = str(command.purpose)
-    stage = {
-        "quality": "compile",
-        "unit": "unit",
-        "regression": "verify",
-        "security": "verify",
-    }.get(purpose)
-    if command.name == "Repository setup" or (
-        purpose == "quality" and not command.required
-    ):
-        stage = None
-    if stage is not None:
-        label = {
-            "compile": "Compile or quality check",
-            "unit": "Customer unit tests",
-            "verify": "Regression validation",
-        }[stage]
-        progress_path = _PROGRESS_PATH.get()
-        case_label = progress_path.parent.name if progress_path is not None else "unknown"
-        await self.initialize()
-        telemetry_root = _telemetry_root(self.sandbox_workspace)
-        await self.session.exec(
-            "mkdir",
-            "-p",
-            str(telemetry_root),
-            shell=False,
-            timeout=30,
-        )
-        await self.session.write(
-            telemetry_root / "case",
-            io.BytesIO(case_label.encode()),
-        )
-        await self.session.write(
-            telemetry_root / "stage",
-            io.BytesIO(stage.encode()),
-        )
-        log_path = str(telemetry_root / f"{stage}.log")
-        status_result = await self.session.exec(
-            "git",
-            "-C",
-            self.sandbox_workspace,
-            "status",
-            "--porcelain=v1",
-            shell=False,
-            timeout=30,
-        )
-        if not int(status_result.exit_code) and (status_result.stdout or b"").strip():
-            _update_progress(
-                "patch",
-                "passed",
-                "The patch is ready for validation.",
-            )
-        _update_progress(
-            stage,
-            "running",
-            f"{label} is running.",
-            detail=f"{command.name}: {' '.join(command.argv)}",
-        )
-        wrapped_command = command.model_copy(
-            update={
-                "argv": [
-                    "bash",
-                    "-o",
-                    "pipefail",
-                    "-c",
-                    'log=$1; shift; : > "$log"; "$@" 2>&1 | tee -a "$log"',
-                    "strix-live-log",
-                    log_path,
-                    *command.argv,
-                ]
-            }
-        )
-    else:
-        wrapped_command = command
-    result = await _command_call(
-        self, wrapped_command, protect_source=protect_source
-    )
-    if stage is not None:
-        result = result.model_copy(update={"argv": command.argv})
-    if stage is not None:
-        result_status = getattr(result.status, "value", str(result.status))
-        passed = result_status == "passed" and result.exit_code == 0
-        if stage == "verify" and passed:
-            status = "pending"
-            meta = "Regression validation passed; waiting for independent review."
-        else:
-            status = "passed" if passed else "failed"
-            meta = f"{command.name} {'passed' if passed else 'failed'}."
-        _update_progress(
-            stage,
-            status,
-            meta,
-            detail=f"Exit code: {result.exit_code}",
-        )
-    return result
-
-
 async def _instrumented_review(
     self: Any, context: Any, checks: Any
 ) -> Any:
@@ -427,7 +408,7 @@ async def _instrumented_review(
         "The independent reviewer is verifying the fix.",
     )
     result = await _review_call(self, context, checks)
-    concerns = list(result.concerns or [])
+    concerns = list(getattr(result, "concerns", []) or [])
     blocking = any(
         getattr(concern, "kind", "") in {"repair_needed", "customer_prerequisite"}
         for concern in concerns
@@ -457,12 +438,11 @@ async def _instrumented_review(
 
 
 fix_runtime_module.ManagedRepairAgent.__call__ = _instrumented_repair
-fix_runtime_module._RuntimeEnvironment.run_isolated_command = _instrumented_command
 fix_runtime_module.ManagedIndependentVerifier.__call__ = _instrumented_review
-fix_runtime_module._ToolTrace.on_llm_start = _instrumented_llm_start
-fix_runtime_module._ToolTrace.on_llm_end = _instrumented_llm_end
-fix_runtime_module._ToolTrace.on_tool_start = _instrumented_tool_start
-fix_runtime_module._ToolTrace.on_tool_end = _instrumented_tool_end
+fix_runtime_module._FixHooks.on_llm_start = _instrumented_llm_start
+fix_runtime_module._FixHooks.on_llm_end = _instrumented_llm_end
+fix_runtime_module._FixHooks.on_tool_start = _instrumented_tool_start
+fix_runtime_module._FixHooks.on_tool_end = _instrumented_tool_end
 
 
 def _parse_args() -> argparse.Namespace:
